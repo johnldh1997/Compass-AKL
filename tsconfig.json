@@ -1,6 +1,11 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    // Test files import their subject with an explicit .ts extension (Node's ESM loader
+    // requires it; Metro never sees these files at all, so this doesn't affect the app bundle).
+    "allowImportingTsExtensions": true,
+    // Ambient types for node:test/node:assert, used only by *.test.ts files.
+    "types": ["node"]
   }
 }

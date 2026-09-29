@@ -29,6 +29,7 @@ import FavoritesScreen from './src/screens/FavoritesScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import JourneyPlannerScreen from './src/screens/JourneyPlannerScreen';
 import MyTripsScreen from './src/screens/MyTripsScreen';
+import NearbySearchScreen from './src/screens/NearbySearchScreen';
 import SearchStopsScreen from './src/screens/SearchStopsScreen';
 import SetHomeAddressScreen from './src/screens/SetHomeAddressScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -193,6 +194,7 @@ function AppContent() {
             options={{ title: t('nav.chooseLocation'), presentation: 'modal', animation: 'slide_from_bottom' }}
           />
           <Stack.Screen name="MyTrips" component={MyTripsScreen} options={{ title: t('menu.myTrips') }} />
+          <Stack.Screen name="NearbySearch" component={NearbySearchScreen} options={{ title: t('menu.nearbySearch') }} />
           <Stack.Screen name="SearchStops" component={SearchStopsScreen} options={{ title: t('menu.searchStops') }} />
           <Stack.Screen name="Alerts" component={AlertsScreen} options={{ title: t('nav.serviceAlerts') }} />
           <Stack.Screen

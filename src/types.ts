@@ -215,4 +215,8 @@ export type RootStackParamList = {
   // AddFavorite since a home address isn't necessarily meant to also be favourited, and
   // doesn't need stop search (a home address is always a place, never a bus stop).
   SetHomeAddress: undefined;
+  // Free-text "what's nearby" search (e.g. "Japanese food within 20 minutes"). Selecting a
+  // result hands off to JourneyPlanner the same way Home/MyTrips do — restoredFrom/To +
+  // autoSearch — rather than injecting a route directly, since a place isn't a JourneyRoute.
+  NearbySearch: undefined;
 };

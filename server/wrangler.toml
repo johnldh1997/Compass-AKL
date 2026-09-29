@@ -1,0 +1,7 @@
+name = "auckland-transit-nearby-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# ANTHROPIC_API_KEY is a secret, never a var here — set it with:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+# For local dev, put it in .dev.vars (gitignored) instead; see .dev.vars.example.

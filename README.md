@@ -93,6 +93,7 @@ This app needs a **custom development build**, not the plain Expo Go app (`react
 npx eas login
 npx eas env:create --name EXPO_PUBLIC_AT_API_KEY --value your-at-key --scope project --visibility sensitive --environment development preview production
 npx eas env:create --name EXPO_PUBLIC_GOOGLE_DIRECTIONS_KEY --value your-google-key --scope project --visibility sensitive --environment development preview production
+npx eas env:create --name EXPO_PUBLIC_NEARBY_PROXY_URL --value your-deployed-worker-url --scope project --visibility plaintext --environment development preview production
 npx eas build --profile development --platform android
 ```
 

@@ -1,12 +1,12 @@
 import { JourneyEndpoint, JourneyRoute, PlaceSuggestion, TransitStep, TransportMode } from '../types';
 
 const PLACES_AUTOCOMPLETE_URL = 'https://places.googleapis.com/v1/places:autocomplete';
-const COMPUTE_ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+export const COMPUTE_ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
 // Roughly centered on Auckland, used to bias (not restrict) autocomplete results.
 const AUCKLAND_BIAS = { latitude: -36.8485, longitude: 174.7633 };
 
-function getApiKey(): string {
+export function getApiKey(): string {
   return process.env.EXPO_PUBLIC_GOOGLE_DIRECTIONS_KEY ?? '';
 }
 

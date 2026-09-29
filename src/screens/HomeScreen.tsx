@@ -231,6 +231,12 @@ export default function HomeScreen({ navigation, route }: Props) {
             iconColor: colors.violet,
             onPress: () => navigation.navigate('MyTrips'),
           },
+          {
+            label: t('menu.nearbySearch'),
+            icon: 'compass-outline',
+            iconColor: colors.rose,
+            onPress: () => navigation.navigate('NearbySearch'),
+          },
           { label: t('menu.settings'), icon: 'settings-outline', onPress: () => navigation.navigate('Settings') },
           {
             label: t('menu.about'),

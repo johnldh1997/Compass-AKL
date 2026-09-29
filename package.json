@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/elements": "^2.9.30",
     "@react-navigation/native": "^7.3.8",
     "@react-navigation/native-stack": "^7.17.10",
     "expo": "~57.0.4",
@@ -26,13 +27,15 @@
     "react-native-screens": "4.25.2"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios"
+    "ios": "expo start --ios",
+    "test": "node --test"
   },
   "private": true
 }
