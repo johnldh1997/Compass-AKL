@@ -4,9 +4,13 @@ Generates the app's icon set (not part of the app runtime): assets/icon.png,
 android-icon-background.png, android-icon-foreground.png, android-icon-monochrome.png and
 notification-icon.png (the white status-bar silhouette).
 
-The design is a friendly bus front — a white rounded body with wing mirrors, a glassy windshield,
-two headlights and a number plate — on the app's teal-to-cyan colours, with faint transit-map
-route lines and stops behind it.
+The design is the app's original friendly bus front — a white rounded body with wing mirrors, a
+glassy windshield, two headlights and a number plate — framed inside a compass-ring badge (a
+bezel circle with eight tick marks), on the app's teal-to-cyan colours with faint transit-map
+route lines and stops behind it. Added for the "Compass AKL" rename: the bus stayed exactly as it
+was (nobody asked for a new mascot), just scaled down slightly to leave room for the ring inside
+Android's adaptive-icon safe zone; the compass reads through the ring + ticks alone; no needle,
+since one would compete with the bus rather than sit cleanly alongside it, at this size.
 
 Everything is drawn from geometry at 4x resolution and downsampled, so edges are clean and any
 tweak (colours, proportions, size) is a one-line change here followed by a re-run, rather than
@@ -31,14 +35,19 @@ SKY = (18, 168, 200)   # bright end of the background gradient
 DEEP = (6, 44, 66)     # dark end of the background gradient
 
 # Android's adaptive-icon mask can crop to a circle ~626px across, so everything in the
-# foreground layer must stay within ~313px of the center. K scales the whole bus; the largest
-# value that still clears that limit is ~1.3.
+# foreground layer must stay within ~313px of the center. K scales the whole bus; shrunk from the
+# original 1.28 (the largest value that used to clear the limit on its own) to leave room for the
+# compass ring drawn around it, which also has to fit inside that same safe zone.
 CX = CY = 512
-K = 1.28
+K = 0.95
 
 # Extra enlargement for the iOS icon only (the Android layers keep the safe-zone size) — iOS has no
 # adaptive-icon safe zone, so the artwork can fill the square better.
 IOS_ARTWORK_SCALE = 1.1
+
+# Compass ring/ticks — independent of K, sized directly to sit just outside the shrunk bus.
+RING_R, RING_WIDTH = 300, 22
+TICK_LEN, TICK_WIDTH, TICK_INSET = 42, 14, 8
 
 
 def k(value):
@@ -181,6 +190,31 @@ def glare_mask():
     return ImageChops.multiply(glare, windshield_mask())
 
 
+def ring_mask():
+    """The compass bezel: a plain circle outline around the bus."""
+    mask = Image.new("L", (W, W), 0)
+    ImageDraw.Draw(mask).ellipse(
+        [s(CX - RING_R), s(CY - RING_R), s(CX + RING_R), s(CY + RING_R)],
+        outline=255, width=s(RING_WIDTH),
+    )
+    return mask
+
+
+def tick_marks_mask():
+    """Eight short radial ticks just inside the ring, at the cardinal + intercardinal points."""
+    mask = Image.new("L", (W, W), 0)
+    d = ImageDraw.Draw(mask)
+    r_out = RING_R - RING_WIDTH // 2 - TICK_INSET
+    r_in = r_out - TICK_LEN
+    for i in range(8):
+        angle = np.deg2rad(i * 45)
+        ox, oy = np.sin(angle), -np.cos(angle)
+        x0, y0 = CX + ox * r_in, CY + oy * r_in
+        x1, y1 = CX + ox * r_out, CY + oy * r_out
+        d.line([(s(x0), s(y0)), (s(x1), s(y1))], fill=255, width=s(TICK_WIDTH))
+    return mask
+
+
 # --- Layers -------------------------------------------------------------------------------------
 
 def make_background():
@@ -209,10 +243,17 @@ def make_background():
 
 
 def make_foreground():
-    """Transparent layer: soft shadow, white bus body, teal details, windshield glints."""
-    body = body_mask()
+    """Transparent layer: the compass ring badge behind, then the bus's own shadow, white body,
+    teal details and windshield glints on top — the bus visibly sits in front of the ring, like a
+    badge pinned to a medallion, rather than the two competing for the same space."""
     layer = new_layer()
 
+    ring_shape = ImageChops.lighter(ring_mask(), tick_marks_mask())
+    ring_shadow = ImageChops.offset(ring_shape.filter(ImageFilter.GaussianBlur(s(16))), 0, s(16))
+    layer.alpha_composite(solid((0, 0, 0), with_opacity(ring_shadow, 0.22)))
+    layer.alpha_composite(solid((255, 255, 255), ring_shape))
+
+    body = body_mask()
     shadow = ImageChops.offset(body.filter(ImageFilter.GaussianBlur(s(20))), 0, s(22))
     layer.alpha_composite(solid((0, 0, 0), with_opacity(shadow, 0.30)))
     layer.alpha_composite(solid((255, 255, 255), body))
@@ -225,14 +266,16 @@ def make_foreground():
 def make_monochrome():
     """Single-colour silhouette for Android 13+ themed icons: the system tints the opaque pixels,
     so the windshield, lights and plate are cut out (transparent) rather than drawn in a second
-    colour."""
-    return solid((255, 255, 255), ImageChops.subtract(body_mask(), details_mask()))
+    colour; the ring and ticks stay solid alongside the bus."""
+    ring_shape = ImageChops.lighter(ring_mask(), tick_marks_mask())
+    bus_shape = ImageChops.subtract(body_mask(), details_mask())
+    return solid((255, 255, 255), ImageChops.lighter(ring_shape, bus_shape))
 
 
 def make_notification_icon(monochrome):
     """96x96 all-white silhouette for the Android status bar, where notification icons must be a
-    single colour: the bus cropped tight and centred so it fills the icon instead of floating in
-    it (the full-size artwork has a lot of empty margin, which would render tiny up there)."""
+    single colour: cropped tight and centred so it fills the icon instead of floating in it (the
+    full-size artwork has a lot of empty margin, which would render tiny up there)."""
     left, top, right, bottom = monochrome.split()[3].getbbox()
     side = max(right - left, bottom - top)
     center_x, center_y = (left + right) // 2, (top + bottom) // 2

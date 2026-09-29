@@ -11,6 +11,7 @@ const FEATURE_KEYS = [
   'about.feature.journeyPlanner',
   'about.feature.search',
   'about.feature.favourites',
+  'about.feature.nearby',
 ] as const;
 
 const HOW_TO_KEYS = ['about.howTo.map', 'about.howTo.plan', 'about.howTo.menu', 'about.howTo.favourite'] as const;

@@ -1,6 +1,6 @@
-# Auckland Transit
+# Compass AKL
 
-A personal, from-scratch alternative to Auckland Transport's official app — live vehicle tracking, journey planning with real-time GPS step tracking, background-surviving trip notifications, and an offline-first schedule database, built solo with Expo/React Native + TypeScript.
+A personal, from-scratch alternative to Auckland Transport's official app, and more than a transit app now — live vehicle tracking, journey planning with real-time GPS step tracking, background-surviving trip notifications, an offline-first schedule database, and a free-text chat for finding what's actually nearby, built solo with Expo/React Native + TypeScript.
 
 Built against Auckland Transport's public GTFS + GTFS-Realtime APIs and Google's Routes/Places APIs. Mobile only, no web build — built and tested on Android; iOS is configured but untested (see Known limitations).
 
@@ -24,6 +24,7 @@ The official app buries notification settings behind several taps and sends recu
 - **Boarding/alighting alerts** — a vibrating notification fires when your vehicle has just arrived at the stop before yours, then again right as you reach your own stop — driven by your live position along the route, not just a fixed time before the scheduled arrival.
 - **Stop details** — live + scheduled departures merged into one list, plus any active service alerts for that stop.
 - **Favourites** — save stops, places, or whole from→to trips for one-tap re-search.
+- **Find Nearby (chat)** — ask in free text, in English or Korean ("European food near Britomart tomorrow at 5pm", "closest cafe"), and get real walk/transit times, ratings, opening hours, and a written explanation. Handles multi-turn refinement ("actually walking only"), asks a clarifying question when the request is too vague, and resolves "home" to your saved home address rather than searching for it as a place name.
 - **Offline schedule data** — scheduled departures and route path geometry work without a network call, backed by a compact SQLite database built from AT's static GTFS feed (see below — AT's live API doesn't expose this data at all).
 - **Experimental fare estimation** — AT publishes no machine-readable fare data, so this reverse-geocodes each leg and matches it against AT's public fare-zone boundaries, clearly flagged as an estimate.
 - **Dark mode** and **English/Korean localization**, throughout.
@@ -39,6 +40,7 @@ The official app buries notification settings behind several taps and sends recu
 - **expo-sqlite** — on-device queries against a bundled, pre-built schedule database
 - **AsyncStorage** — local persistence (favourites, active journey, notification dedup)
 - Auckland Transport's GTFS + GTFS-Realtime APIs, Google Routes API + Places API (New)
+- **Cloudflare Workers + Anthropic API (Claude)** — a small proxy service (`server/`) that turns free-text "Find Nearby" queries into structured search intent; the only place the Anthropic key lives
 
 ## Notable engineering challenges
 
@@ -52,6 +54,7 @@ A few problems that took real digging to solve properly, condensed here — the 
 - **Same-name stops that aren't the same stop.** A station where two directions of the same line meet (e.g. Glen Innes, where the Eastern Line's two directions cross) has a separate AT stop ID per platform, sometimes only metres apart — closer together than any reasonable coordinate-matching tolerance. Matching Google's board/alight coordinate to a single "nearest" AT stop before knowing which trip it actually was picked the wrong platform on a real Auckland route, silently resolving zero stops for that leg. Fixed by keeping every stop within range as a candidate and checking a matched trip's own stop sequence against the whole set, so whichever platform that specific trip actually uses is the one that's found.
 - **OTA update lag during fast iteration.** `expo-updates` only applies a downloaded update on the *next* cold start by default — during active testing this made fixes look like they hadn't landed, when really the tester was always one publish behind. `App.tsx` now checks, fetches, and reloads synchronously before rendering, so a single close-and-reopen always lands on the latest published update.
 - **Fare estimation from data that doesn't officially exist.** AT publishes no fare API and no downloadable fare-zone map (confirmed against the Mobility Database feed listing and both APIs in use). Fares are estimated by reverse-geocoding each leg's boarding/alighting stop and matching the resulting suburb against AT's own zone-boundary descriptions, hand-transcribed from their public fares page — deliberately labeled "(approximate)" in the UI rather than presented as authoritative.
+- **A free-text chat feature that never lets the model touch a real place, route, or date.** Find Nearby's Claude proxy only ever extracts structured intent (category, a stated time budget, a named reference location, a day/hour/minute) from the sentence — it never picks a place, computes an actual date, or invents a default the user didn't ask for (a plain "closest X" has no time limit; "Friday evening" without an exact hour still needs a concrete hour for real routing, so vague time-of-day words map to a representative hour rather than silently defaulting to whatever moment the request happens to arrive at). All real data — distance pruning, opening-hours matching, ranking — is pure, deterministic, unit-tested TypeScript with zero model involvement.
 
 ## Known limitations
 
@@ -59,7 +62,7 @@ A few problems that took real digging to solve properly, condensed here — the 
 - **Built and tested on Android only** — the app is configured for iOS too (bundle identifier, permissions, plugins are all in `app.config.js`), but a real iOS build requires a paid Apple Developer Program membership to install on a physical device, which this project hasn't set up. Untested on iOS as a result.
 - **Route highlights, per-leg stop lists and scheduled departures depend on a bundled timetable snapshot.** AT re-issues its trip IDs whenever it publishes a new schedule, so the snapshot can fall out of step with the live feed well before its stated end date. This bit for real: a check of every live vehicle against the bundled database found only 35% of their trips (so only 35% could show a route), until it was rebuilt from a fresh feed (100%). Rebuilding is `scripts/build-gtfs-db.py` on AT's current `gtfs.zip` — worth repeating whenever AT publishes a new feed. The hamburger menu warns when the feed is close to expiring, but that date alone doesn't catch this drift.
 - **Fare estimates are approximate**, not official pricing — see above.
-- **No automated test suite** — correctness was verified through real-API testing (with live keys, not mocks) and manual device testing throughout development, not unit/integration tests.
+- **Automated tests cover only the Find Nearby ranking logic** (`src/services/nearbyRanking.ts`, run via `npm test`) — distance pruning, duration filtering, and opening-hours/date resolution, since that logic is pure and easy to get subtly wrong. Everything else was verified through real-API testing (with live keys, not mocks) and manual device testing, not unit/integration tests.
 
 ## Getting started
 
@@ -118,7 +121,7 @@ src/
                  useLegStops (the stops each leg of a route passes through)
   i18n/          Translation table + hook (also usable outside React, for the background task)
   screens/       Home, Favorites, AddFavorite, StopDetail, Settings, About, JourneyPlanner,
-                 ChooseOnMap, MyTrips, SearchStops, Alerts, SetHomeAddress
+                 ChooseOnMap, MyTrips, SearchStops, Alerts, SetHomeAddress, NearbySearch
   services/
     atClient.ts          Low-level fetch wrapper for AT's API (adds the subscription key header)
     gtfs.ts              Stop search, route lookup, trip headsign lookup (live AT REST API)
@@ -137,6 +140,10 @@ src/
     fareZones.ts         Experimental fare estimation from reverse-geocoded fare zones
     legColors.ts         Shared per-leg color palette (map + step list use the same colors)
     location.ts          expo-location wrapper
+    nearbySearch.ts       Find Nearby orchestration: calls the server/ proxy, geocodes a named
+                          reference location or resolves the saved home address, ranks results
+    nearbyRanking.ts      Pure, unit-tested logic behind Find Nearby: distance pruning, duration
+                          filtering, target day/time resolution, opening-hours matching
     markerIcon.ts, departures.ts, mockData.ts, notifications.ts
   theme.ts, mapStyle.ts, types.ts
 scripts/
@@ -145,6 +152,8 @@ scripts/
 assets/
   gtfs.db            Bundled pre-built SQLite database, queried by gtfsStatic.ts
   icon.png, android-icon-*.png, notification-icon.png   Generated by scripts/generate-icons.py
+server/              Cloudflare Worker proxy for Find Nearby — free text -> structured search
+                     intent via Claude, the only place the Anthropic key lives (see server/README.md)
 index.ts             Entry point — registers the background location task before the app mounts
 App.tsx              Navigation shell + startup update-check
 app.config.js        Expo config — native plugins, permissions, package/bundle IDs
