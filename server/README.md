@@ -5,12 +5,16 @@ A two-endpoint Cloudflare Worker behind the app's "Find Nearby" chat feature:
 - `POST /parse-nearby` — turns free text ("European food near Britomart tomorrow at 5pm", in
   English or Korean) into structured search intent: category, a stated time budget, travel
   modes, whether it means the app's saved home address, a named reference location, a target
-  day/hour/minute, and — when the request is too vague to act on — a clarifying question to ask
+  day/hour/minute, whether they want the closest or the best rated, whether they asked for cheap,
+  vegetarian or outdoor seating, and — when the request is too vague to act on — a clarifying question to ask
   back. Accepts an optional `previousIntent` so a short follow-up ("actually walking only") is
   understood as a refinement of the last turn rather than its own incomplete request.
 - `POST /explain-results` — takes the client's own already-computed real results (places, real
-  travel times, ratings, hours) and writes a short natural-language reply. Never invents a
-  place, distance, or detail that isn't in the list it's given.
+  travel times, ratings, hours at the moment of arrival, price and menu details) and writes a short
+  reply in the user's language. Never invents a place, distance, or detail that isn't in the list
+  it's given. Runs on Opus 5.5 because the smaller models answered Korean questions in English;
+  Opus always thinks before answering, so it gets a generous `max_tokens` (at 300 the reply came
+  back empty or cut off).
 
 Neither endpoint ever picks a place, a route, or a travel time itself, and neither computes an
 actual date — those come from real Google Places/Routes data and pure date-math, both handled
@@ -50,7 +54,7 @@ curl -X POST http://localhost:8787/parse-nearby \
 
 ## Testing the parser
 
-`npm run eval` runs about 50 English and Korean phrasings (plain searches, time limits, saved home,
+`npm run eval` runs about 70 English and Korean phrasings (plain searches, time limits, saved home,
 named places, days and vague times of day, too-vague requests, follow-up refinements, brand names)
 through the same prompt, schema and call the Worker uses, and checks each structured result field
 by field. It needs the key in `.dev.vars` and makes one real API call per case.
@@ -59,6 +63,7 @@ by field. It needs the key in `.dev.vars` and makes one real API call per case.
 npm run eval                                    # the model the Worker uses
 npm run eval -- --model claude-sonnet-5-5       # try another model
 npm run eval -- --filter ko-                    # only cases whose id contains "ko-"
+npm run eval -- --repeat 5                      # each case 5 times — the model isn't deterministic
 ```
 
 Run it before changing the prompt, the schema or the model: a rule tightened for one phrasing can
