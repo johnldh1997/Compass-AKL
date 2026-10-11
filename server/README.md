@@ -15,7 +15,8 @@ A two-endpoint Cloudflare Worker behind the app's "Find Nearby" chat feature:
 Neither endpoint ever picks a place, a route, or a travel time itself, and neither computes an
 actual date — those come from real Google Places/Routes data and pure date-math, both handled
 client-side in `../src/services/nearbySearch.ts` and `../src/services/nearbyRanking.ts`. See the
-Zod schemas and system prompts in `src/index.ts` for the exact contract.
+Zod schemas and system prompts in `src/parse.ts` (parsing) and `src/index.ts` (explaining) for the
+exact contract.
 
 ## Why this exists as a separate service
 
@@ -46,6 +47,23 @@ curl -X POST http://localhost:8787/parse-nearby \
   -H "Content-Type: application/json" \
   -d '{"text": "actually only walking", "previousIntent": {"category":"Japanese restaurant","maxMinutes":20,"modes":["WALK","TRANSIT"],"useSavedHome":false,"referenceLocationText":null,"targetDay":null,"hour":null,"minute":null,"confident":true}}'
 ```
+
+## Testing the parser
+
+`npm run eval` runs about 50 English and Korean phrasings (plain searches, time limits, saved home,
+named places, days and vague times of day, too-vague requests, follow-up refinements, brand names)
+through the same prompt, schema and call the Worker uses, and checks each structured result field
+by field. It needs the key in `.dev.vars` and makes one real API call per case.
+
+```bash
+npm run eval                                    # the model the Worker uses
+npm run eval -- --model claude-sonnet-5-5       # try another model
+npm run eval -- --filter ko-                    # only cases whose id contains "ko-"
+```
+
+Run it before changing the prompt, the schema or the model: a rule tightened for one phrasing can
+quietly break another, and this is where that shows up. Cases live in `eval/cases.json`; a case only
+checks the fields it lists under `expect`.
 
 ## Deploying
 
