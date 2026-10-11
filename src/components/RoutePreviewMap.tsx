@@ -46,7 +46,7 @@ const BADGE_SIZE = 34;
 const LIVE_VEHICLE_BADGE = { width: BADGE_SIZE, height: BADGE_SIZE, round: true };
 
 // Stops only get their full labelled badge once the map is zoomed in this far — wider than that,
-// a route's stops are drawn as small dots, since full badges overlap into a blob along the line
+// a route's stops are drawn as small icon markers, since full badges overlap into a blob along the line
 // (and badly in the CBD, where stops are only a few metres apart).
 const STOP_BADGE_MAX_DELTA = 0.01;
 

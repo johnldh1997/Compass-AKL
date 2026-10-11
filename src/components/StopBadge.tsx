@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MODE_ICON } from '../services/markerIcon';
@@ -21,10 +21,11 @@ const RING_WIDTH = 2;
 export const STOP_BADGE_SIZE = 32;
 
 // Zoomed out, a full labelled badge per stop piles up into an unreadable blob, so callers can ask
-// for a small plain dot instead — still obviously "a stop", and nothing like a vehicle's badge.
-// Big enough (18) to remain a reasonable tap target for opening the stop's details.
-const DOT_SIZE = 18;
-const DOT_RING_WIDTH = 3;
+// for a small icon-only marker instead. A plain empty ring read as odd and unclear on the map, so
+// it carries a bus-stop sign (not the front-on bus a live vehicle shows) — still obviously "a
+// stop". Big enough to remain a reasonable tap target for opening the stop's details.
+const COMPACT_SIZE = 24;
+const COMPACT_RING_WIDTH = 2;
 
 interface Props {
   size: number;
@@ -40,9 +41,21 @@ export default function StopBadge({ size, color, mode, label, compact }: Props) 
       <View
         style={[
           styles.badge,
-          { width: DOT_SIZE, height: DOT_SIZE, borderRadius: DOT_SIZE / 2, borderColor: color, borderWidth: DOT_RING_WIDTH },
+          {
+            width: COMPACT_SIZE,
+            height: COMPACT_SIZE,
+            borderRadius: COMPACT_SIZE / 2,
+            borderColor: color,
+            borderWidth: COMPACT_RING_WIDTH,
+          },
         ]}
-      />
+      >
+        {mode === 'bus' ? (
+          <MaterialCommunityIcons name="bus-stop" size={15} color={color} />
+        ) : (
+          <MaterialIcons name={MODE_ICON[mode]} size={14} color={color} />
+        )}
+      </View>
     );
   }
   const iconSize = Math.round(size * 0.38);

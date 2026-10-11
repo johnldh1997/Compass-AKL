@@ -47,8 +47,8 @@ const LOCATION_TIMEOUT_MS = 5_000;
 // steady distance from the badge's edge at every angle.
 const VEHICLE_BADGE = { width: 40, height: 38, radius: 8 };
 
-// Stops are drawn as small ring dots until the map is zoomed in this tight, then as the full
-// labelled badge. Even the default "my location" zoom (MY_LOCATION_ZOOM_DELTA, 0.005) is crowded
+// Stops are drawn as small bus-stop-sign markers until the map is zoomed in this tight, then as
+// the full labelled badge. Even the default "my location" zoom (MY_LOCATION_ZOOM_DELTA, 0.005) is crowded
 // enough in the CBD that labelled badges collapse into each other, so the badge waits for a
 // closer look than that.
 const STOP_BADGE_MAX_DELTA = 0.003;
