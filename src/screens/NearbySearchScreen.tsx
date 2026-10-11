@@ -374,7 +374,10 @@ export default function NearbySearchScreen({ navigation }: Props) {
                   <Text style={styles.resultSubtitle}>{formatSubtitle(result, t)}</Text>
                   {result.isOpenNow != null && (
                     <Text style={[styles.hoursText, result.isOpenNow ? styles.hoursOpenText : styles.hoursClosedText]}>
-                      {result.isOpenNow ? t('nearby.openNow') : t('nearby.closedNow')}
+                      {/* When a day/time was asked about, the status is for that moment — "now" would be wrong. */}
+                      {result.isOpenNow
+                        ? t(item.departureTime ? 'nearby.open' : 'nearby.openNow')
+                        : t(item.departureTime ? 'nearby.closed' : 'nearby.closedNow')}
                       {result.todayHoursText ? ` · ${result.todayHoursText}` : ''}
                     </Text>
                   )}
