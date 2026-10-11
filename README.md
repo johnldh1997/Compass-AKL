@@ -7,9 +7,10 @@ Built against Auckland Transport's public GTFS + GTFS-Realtime APIs and Google's
 ## Screenshots
 
 <p float="left">
-  <img src="images/live-map.jpg" width="32%" alt="Live map with heading-direction vehicle badges and bordered stop markers" />
-  <img src="images/route-options.jpg" width="32%" alt="Route options with travel times, transfers, and walking distance" />
-  <img src="images/stop-list.jpg" width="32%" alt="Route preview with the full per-leg stop list expanded" />
+  <img src="images/live-map.jpg" width="24%" alt="Live map with heading-direction vehicle badges and small stop markers" />
+  <img src="images/route-options.jpg" width="24%" alt="Route options with travel times, transfers, and walking distance" />
+  <img src="images/stop-list.jpg" width="24%" alt="Route preview with the full per-leg stop list expanded" />
+  <img src="images/nearby-search.jpg" width="24%" alt="Find Nearby chat answering 'European food near Britomart tomorrow at 5pm' with walking times, ratings and opening hours" />
 </p>
 
 ## Why I built this
