@@ -24,11 +24,37 @@ The official app buries notification settings behind several taps and sends recu
 - **Boarding/alighting alerts** — a vibrating notification fires when your vehicle has just arrived at the stop before yours, then again right as you reach your own stop — driven by your live position along the route, not just a fixed time before the scheduled arrival.
 - **Stop details** — live + scheduled departures merged into one list, plus any active service alerts for that stop.
 - **Favourites** — save stops, places, or whole from→to trips for one-tap re-search.
-- **Find Nearby (chat)** — ask in free text, in English or Korean ("European food near Britomart tomorrow at 5pm", "closest cafe"), and get real walk/transit times, ratings, opening hours, and a written explanation. Handles multi-turn refinement ("actually walking only"), asks a clarifying question when the request is too vague, and resolves "home" to your saved home address rather than searching for it as a place name.
+- **Find Nearby (AI chat)** — ask for anything in plain English or Korean ("European food near Britomart tomorrow at 5pm", "closest cafe", "집 근처 카페") and get real places with real walk/transit times, star ratings, opening hours, and a short written answer. Remembers the conversation for follow-ups, asks when a request is too vague, and treats "home" as your saved home address. See [Find Nearby](#find-nearby--the-ai-chat) below.
 - **Offline schedule data** — scheduled departures and route path geometry work without a network call, backed by a compact SQLite database built from AT's static GTFS feed (see below — AT's live API doesn't expose this data at all).
 - **Experimental fare estimation** — AT publishes no machine-readable fare data, so this reverse-geocodes each leg and matches it against AT's public fare-zone boundaries, clearly flagged as an estimate.
 - **Dark mode** and **English/Korean localization**, throughout.
 - **Over-the-air updates** — JS-only changes ship instantly via EAS Update without needing a new app-store-style build.
+
+## Find Nearby — the AI chat
+
+A chat screen (side menu → Find Nearby) that takes free text in English or Korean and answers with real places, real travel times, and a short written reply. A few things it handles that a plain search box can't:
+
+| You type | What happens |
+| --- | --- |
+| `closest cafe` | No time limit is invented — places are just ranked by real travel time |
+| `korean bbq within 30 minutes` | Only places actually reachable in 30 minutes |
+| `European food near Britomart tomorrow at 5pm` | Searches around Britomart, routes for a 5pm departure tomorrow, keeps only places open then |
+| `ramen near Sky Tower Friday evening` | A vague "evening" becomes a concrete 6pm for routing and opening hours |
+| `cafe near home` / `집 근처 카페` | Resolves to your saved home address — not a business that happens to be called "Home" |
+| `somewhere to eat` | Asks what kind of food you're after instead of guessing |
+| …then `actually only walking` | Read as a refinement of the previous request, not a new one |
+
+Each result shows the travel time (walk, or the transit line to take), star rating, today's opening hours with an open/closed flag, Google's editorial summary when there is one, and a Google Maps link; tapping a result hands off to the journey planner. When you didn't say *when* you're going, results aren't filtered by opening hours — closed ones are shown as closed and the reply asks what time you're heading out. The conversation persists across app restarts, with a trash button in the header to clear it.
+
+**How a message becomes an answer:**
+
+1. **Parse** — the app sends the text (plus the previous turn, for follow-ups) to the Worker's `/parse-nearby`, which returns structured fields: category, time budget, travel modes, a "means my home" flag, a named reference place, a target day/hour/minute — or a clarifying question.
+2. **Pick the origin** — live GPS, a named place geocoded through Places Text Search, or the saved home address (looked up through Place Details when it's stored as a place ID).
+3. **Search and prune** — Places Text Search finds candidates; straight-line distance (free) cuts them to the 8 closest so only those cost a Routes API call.
+4. **Route and rank** — real walk or transit times for the requested departure, opening hours matched against the target moment, ranked by travel time.
+5. **Explain** — the final list goes to `/explain-results`, which writes 2–4 sentences describing it. It can describe results; it can't add any.
+
+The model's job ends at step 1 and begins again at step 5 — everything in between is real map data and deterministic code (`src/services/nearbyRanking.ts`, unit-tested). The Worker is documented in [server/README.md](server/README.md).
 
 ## Tech stack
 
@@ -40,7 +66,7 @@ The official app buries notification settings behind several taps and sends recu
 - **expo-sqlite** — on-device queries against a bundled, pre-built schedule database
 - **AsyncStorage** — local persistence (favourites, active journey, notification dedup)
 - Auckland Transport's GTFS + GTFS-Realtime APIs, Google Routes API + Places API (New)
-- **Cloudflare Workers + Anthropic API (Claude)** — a small proxy service (`server/`) that turns free-text "Find Nearby" queries into structured search intent; the only place the Anthropic key lives
+- **Cloudflare Workers + Anthropic API (Claude)** — a small two-endpoint proxy (`server/`): one turns a free-text Find Nearby request into structured search intent (Zod-validated structured output), the other writes the short reply from results the app already computed. The only place the Anthropic key lives
 
 ## Notable engineering challenges
 
@@ -55,6 +81,7 @@ A few problems that took real digging to solve properly, condensed here — the 
 - **OTA update lag during fast iteration.** `expo-updates` only applies a downloaded update on the *next* cold start by default — during active testing this made fixes look like they hadn't landed, when really the tester was always one publish behind. `App.tsx` now checks, fetches, and reloads synchronously before rendering, so a single close-and-reopen always lands on the latest published update.
 - **Fare estimation from data that doesn't officially exist.** AT publishes no fare API and no downloadable fare-zone map (confirmed against the Mobility Database feed listing and both APIs in use). Fares are estimated by reverse-geocoding each leg's boarding/alighting stop and matching the resulting suburb against AT's own zone-boundary descriptions, hand-transcribed from their public fares page — deliberately labeled "(approximate)" in the UI rather than presented as authoritative.
 - **A free-text chat feature that never lets the model touch a real place, route, or date.** Find Nearby's Claude proxy only ever extracts structured intent (category, a stated time budget, a named reference location, a day/hour/minute) from the sentence — it never picks a place, computes an actual date, or invents a default the user didn't ask for (a plain "closest X" has no time limit; "Friday evening" without an exact hour still needs a concrete hour for real routing, so vague time-of-day words map to a representative hour rather than silently defaulting to whatever moment the request happens to arrive at). All real data — distance pruning, opening-hours matching, ranking — is pure, deterministic, unit-tested TypeScript with zero model involvement.
+- **Catching a language model inventing things — by testing it live, not by rereading the prompt.** Each of these was a real bug before it was a fix: "cafe near home" searched Places for a business literally named "Home" and returned a "Home Cafe" (fix: a separate `useSavedHome` signal, resolved against the app's own saved address — including one stored as just a place ID); an unstated time budget silently defaulted to 20 minutes and hid real matches (fix: `maxMinutes` nullable end to end); "open right now" was quietly assumed when nobody gave a time, so a Korean-Chinese restaurant query at 8:45am came back empty (fix: always show hours, filter only on an explicit time, and have the reply ask when you're going); and a "fix obvious typos" instruction turned a real shop name, Yogost, into "yogurt" (fix: tell brand names apart from garbled ordinary words). The same vagueness also had to be judged the same in both languages — "somewhere to eat" got a clarifying question while its Korean equivalent silently searched for "restaurant" — so every fix was re-checked with paired English/Korean queries against the deployed Worker.
 
 ## Known limitations
 
@@ -63,6 +90,10 @@ A few problems that took real digging to solve properly, condensed here — the 
 - **Route highlights, per-leg stop lists and scheduled departures depend on a bundled timetable snapshot.** AT re-issues its trip IDs whenever it publishes a new schedule, so the snapshot can fall out of step with the live feed well before its stated end date. This bit for real: a check of every live vehicle against the bundled database found only 35% of their trips (so only 35% could show a route), until it was rebuilt from a fresh feed (100%). Rebuilding is `scripts/build-gtfs-db.py` on AT's current `gtfs.zip` — worth repeating whenever AT publishes a new feed. The hamburger menu warns when the feed is close to expiring, but that date alone doesn't catch this drift.
 - **Fare estimates are approximate**, not official pricing — see above.
 - **Automated tests cover only the Find Nearby ranking logic** (`src/services/nearbyRanking.ts`, run via `npm test`) — distance pruning, duration filtering, and opening-hours/date resolution, since that logic is pure and easy to get subtly wrong. Everything else was verified through real-API testing (with live keys, not mocks) and manual device testing, not unit/integration tests.
+- **Find Nearby is optional and has its own moving parts.** It needs the `server/` Worker deployed and an Anthropic API key (the rest of the app works without either), and every search costs two model calls — one to parse, one to write the reply. The Worker's 10-requests-a-minute-per-IP limit is a best-effort in-memory counter, not a hard cap.
+- **Find Nearby only knows what Google Places knows.** Ratings, hours and summaries come straight from Places, so there are no menus (it links out to Google Maps instead), and a place with no listed hours is shown rather than filtered out. Only the 8 closest candidates are routed and 6 are shown, to keep API cost bounded.
+- **"Near my work" isn't resolved automatically** — home is the only saved location, so a work reference gets a clarifying question instead.
+- **Understanding the request is a language model's job, so it isn't deterministic.** I checked a few dozen English and Korean phrasings against the live Worker by hand, but there's no automated eval suite for the parsing itself.
 
 ## Getting started
 
@@ -82,11 +113,29 @@ AT's API has no route-planning, address-lookup, or map-tile endpoint, so two Goo
 
 Both APIs share the standard $200/month free credit; autocomplete is free, each "Get Directions" call costs a small fraction of a cent. For personal use this should stay at $0, but it's pay-as-you-go past the free credit.
 
-### 3. Configure and run
+### 3. (Optional) Deploy the Find Nearby proxy
+
+Skip this and everything except Find Nearby still works. The chat feature needs a small Cloudflare Worker (`server/`) because an Anthropic API key can't safely live inside a mobile app bundle:
+
+1. Create an API key in the [Anthropic Console](https://console.anthropic.com/).
+2. Deploy the Worker (free Cloudflare account is enough):
+
+```bash
+cd server
+npm install
+npx wrangler login
+npx wrangler secret put ANTHROPIC_API_KEY   # paste the key at the hidden prompt
+npm run deploy                              # prints https://<name>.<account>.workers.dev
+cd ..
+```
+
+Keep the printed URL — it's `EXPO_PUBLIC_NEARBY_PROXY_URL` in the next step. Local development and the request/response contract are in [server/README.md](server/README.md).
+
+### 4. Configure and run
 
 ```bash
 cp .env.example .env
-# fill in both keys in .env
+# fill in the keys in .env (the proxy URL is only needed if you did step 3)
 npm install
 ```
 
@@ -144,6 +193,7 @@ src/
                           reference location or resolves the saved home address, ranks results
     nearbyRanking.ts      Pure, unit-tested logic behind Find Nearby: distance pruning, duration
                           filtering, target day/time resolution, opening-hours matching
+                          (tests in nearbyRanking.test.ts, run with `npm test`)
     markerIcon.ts, departures.ts, mockData.ts, notifications.ts
   theme.ts, mapStyle.ts, types.ts
 scripts/
