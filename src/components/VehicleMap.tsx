@@ -18,6 +18,7 @@ import { Stop, VehiclePosition } from '../types';
 import HeadingArrowBadge, { bearingBucket } from './HeadingArrowBadge';
 import LocateButton from './LocateButton';
 import StableMarker from './StableMarker';
+import StopBadge, { STOP_BADGE_SIZE } from './StopBadge';
 import { createStyles } from './VehicleMap.styles';
 
 // AT's realtime feed itself updates roughly every 30s server-side; polling at 15s just
@@ -45,6 +46,12 @@ const LOCATION_TIMEOUT_MS = 5_000;
 // (which is fixed at exactly this size) so HeadingArrowBadge can keep its heading arrowhead a
 // steady distance from the badge's edge at every angle.
 const VEHICLE_BADGE = { width: 40, height: 38, radius: 8 };
+
+// Stops are drawn as small ring dots until the map is zoomed in this tight, then as the full
+// labelled badge. Even the default "my location" zoom (MY_LOCATION_ZOOM_DELTA, 0.005) is crowded
+// enough in the CBD that labelled badges collapse into each other, so the badge waits for a
+// closer look than that.
+const STOP_BADGE_MAX_DELTA = 0.003;
 
 // The bus-icon bitmap (see markerIcon.ts) is a plain square glyph, not a teardrop pin — the
 // native default anchor (bottom-center, correct for a pin whose tip touches the ground) would
@@ -359,6 +366,8 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
     [stops]
   );
 
+  const stopsAsBadges = region.latitudeDelta <= STOP_BADGE_MAX_DELTA;
+
   async function handleStopPress(stop: Stop, coordinate: { latitude: number; longitude: number }) {
     markerPressedRef.current = true;
     if (!mapRef.current) {
@@ -473,11 +482,18 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
             coordinate={coordinate}
             anchor={CENTER_ANCHOR}
             zIndex={1}
+            // The marker's native bitmap is frozen once drawn, so switching between the dot
+            // and the full badge needs a fresh snapshot (see StableMarker's snapshotKey).
+            snapshotKey={stopsAsBadges ? 'badge' : 'dot'}
             onPress={() => handleStopPress(stop, coordinate)}
           >
-            <View style={[styles.stopBadge, { borderColor: colors.primary }]}>
-              <MaterialIcons name={MODE_ICON.bus} size={11} color={colors.primary} />
-            </View>
+            <StopBadge
+              size={STOP_BADGE_SIZE}
+              color={colors.primary}
+              mode="bus"
+              label={t('map.stopLabel')}
+              compact={!stopsAsBadges}
+            />
           </StableMarker>
         ))}
         {/* Always mounted, coordinates just swap to EMPTY_SHAPE when deselected — unmounting

@@ -11,13 +11,13 @@ import { decodePolyline } from '../services/directions';
 import { getStopById, getTripHeadsign } from '../services/gtfs';
 import { getLegColor } from '../services/legColors';
 import { getCurrentCoordinates } from '../services/location';
-import { MODE_ICON } from '../services/markerIcon';
 import { getNextStopForTrip, NextStopInfo } from '../services/realtime';
 import { radius, spacing } from '../theme';
 import { Stop, TransitStep, TransportMode, VehiclePosition } from '../types';
 import HeadingArrowBadge, { bearingBucket } from './HeadingArrowBadge';
 import LocateButton from './LocateButton';
 import StableMarker from './StableMarker';
+import StopBadge, { STOP_BADGE_SIZE } from './StopBadge';
 
 // Matches the parent's own live-vehicle poll cadence (JourneyPlannerScreen's
 // LIVE_VEHICLE_POLL_MS) — no need to import it directly, just stay consistent so a
@@ -40,9 +40,15 @@ const AUCKLAND_CENTER = { latitude: -36.8485, longitude: 174.7633 };
 // instead of centered on it. A stable module-level reference, same reasoning as VehicleMap.tsx.
 const CENTER_ANCHOR = { x: 0.5, y: 0.5 };
 
-// The live-vehicle badge is a 28px circle (styles.liveVehicleBadge) — its heading arrowhead
-// sits a steady distance off that circle's edge, in the same colour as its ring.
-const LIVE_VEHICLE_BADGE = { width: 28, height: 28, round: true };
+// The live-vehicle badge is a circle (styles.liveVehicleBadge) — its heading arrowhead sits a
+// steady distance off that circle's edge, in the same colour as its ring.
+const BADGE_SIZE = 34;
+const LIVE_VEHICLE_BADGE = { width: BADGE_SIZE, height: BADGE_SIZE, round: true };
+
+// Stops only get their full labelled badge once the map is zoomed in this far — wider than that,
+// a route's stops are drawn as small dots, since full badges overlap into a blob along the line
+// (and badly in the CBD, where stops are only a few metres apart).
+const STOP_BADGE_MAX_DELTA = 0.01;
 
 interface Props {
   encodedPolyline: string;
@@ -85,6 +91,8 @@ export default function RoutePreviewMap({
   const points = decodePolyline(encodedPolyline);
   const legStops = useLegStops(steps);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  // Starts false: a route opens fitted to its whole length, which is almost always zoomed out.
+  const [zoomedInOnStops, setZoomedInOnStops] = useState(false);
   const selectedVehicle = liveVehicles.find((v) => v.vehicleId === selectedVehicleId) ?? null;
 
   useEffect(() => {
@@ -170,6 +178,7 @@ export default function RoutePreviewMap({
         showsMyLocationButton={false}
         toolbarEnabled={false}
         customMapStyle={isDark ? darkMapStyle : lightMapStyle}
+        onRegionChangeComplete={(region) => setZoomedInOnStops(region.latitudeDelta <= STOP_BADGE_MAX_DELTA)}
       >
         {steps.map((step, index) => {
           const segmentPoints = step.encodedPolyline ? decodePolyline(step.encodedPolyline) : [];
@@ -188,10 +197,23 @@ export default function RoutePreviewMap({
         {/* zIndex keeps stops above the route polylines (a separate overlay layer, always
             beneath markers) but below the live vehicles rendered after them. */}
         {legStopMarkers.map(({ key, stop, coordinate, color, mode }) => (
-          <StableMarker key={key} coordinate={coordinate} anchor={CENTER_ANCHOR} zIndex={1} title={stop.name}>
-            <View style={[styles.stopBadge, { borderColor: color }]}>
-              <MaterialIcons name={MODE_ICON[mode]} size={11} color={color} />
-            </View>
+          <StableMarker
+            key={key}
+            coordinate={coordinate}
+            anchor={CENTER_ANCHOR}
+            zIndex={1}
+            title={stop.name}
+            // The marker's native bitmap is frozen once it's drawn, so switching between the
+            // dot and the full badge needs a fresh snapshot (see StableMarker's snapshotKey).
+            snapshotKey={zoomedInOnStops ? 'badge' : 'dot'}
+          >
+            <StopBadge
+              size={STOP_BADGE_SIZE}
+              color={color}
+              mode={mode}
+              label={t('map.stopLabel')}
+              compact={!zoomedInOnStops}
+            />
           </StableMarker>
         ))}
         {start && <Marker coordinate={start} pinColor={colors.success} title={t('map.start')} />}
@@ -211,7 +233,7 @@ export default function RoutePreviewMap({
             >
               <HeadingArrowBadge bearing={vehicle.bearing} arrowColor={color} badge={LIVE_VEHICLE_BADGE}>
                 <View style={[styles.liveVehicleBadge, { borderColor: color }]}>
-                  <MaterialIcons name="directions-bus" size={16} color={color} />
+                  <MaterialIcons name="directions-bus" size={19} color={color} />
                 </View>
               </HeadingArrowBadge>
             </StableMarker>
@@ -318,22 +340,11 @@ function SelectedVehicleInfo({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   liveVehicleBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: BADGE_SIZE,
+    height: BADGE_SIZE,
+    borderRadius: BADGE_SIZE / 2,
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // A stop's own marker: a small hollow-looking badge (white fill, coloured ring) so it
-  // reads as quieter than a vehicle's bigger badge even before either one moves.
-  stopBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

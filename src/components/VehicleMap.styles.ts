@@ -28,17 +28,6 @@ export function createStyles(colors: ThemeColors) {
       borderColor: '#FFFFFF',
     },
     dotText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-    // A stop's own marker: a small hollow-looking badge (white fill, coloured ring) so it
-    // reads as quieter than a vehicle's solid, bigger badge even before either one moves.
-    stopBadge: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      backgroundColor: '#FFFFFF',
-      borderWidth: 2,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     locateButton: {
       position: 'absolute',
       right: spacing.md,
