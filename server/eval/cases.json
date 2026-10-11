@@ -2,266 +2,369 @@
   {
     "id": "en-basic",
     "text": "ramen near me",
-    "expect": { "category": ["ramen"], "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true, "asksQuestion": false }
+    "expect": {"category": ["ramen"], "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true, "asksQuestion": false, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false}
   },
   {
     "id": "en-closest-brand",
     "text": "closest yogost",
-    "expect": { "category": ["yogost"], "maxMinutes": null, "targetDay": null, "hour": null, "minute": null, "confident": true }
+    "expect": {"category": ["yogost"], "maxMinutes": null, "targetDay": null, "hour": null, "minute": null, "confident": true, "rankBy": "nearest"}
   },
   {
     "id": "en-brand-unfamiliar",
     "text": "gong cha near me",
-    "expect": { "category": ["gong cha"], "confident": true }
+    "expect": {"category": ["gong cha"], "confident": true}
   },
   {
     "id": "en-casual-phrasing",
     "text": "japanese food",
-    "expect": { "category": ["japanese"], "confident": true, "maxMinutes": null }
+    "expect": {"category": ["japanese"], "confident": true, "maxMinutes": null}
   },
   {
     "id": "en-typo",
     "text": "japaneze restaurent",
-    "expect": { "category": ["japanese"], "confident": true }
+    "expect": {"category": ["japanese"], "confident": true}
   },
   {
     "id": "en-walk-limit",
     "text": "japanese restaurant within 10 minutes walk",
-    "expect": { "category": ["japanese"], "maxMinutes": 10, "modes": ["WALK"] }
+    "expect": {"category": ["japanese"], "maxMinutes": 10, "modes": ["WALK"]}
   },
   {
     "id": "en-limit-any-mode",
     "text": "cafe within 15 minutes",
-    "expect": { "category": ["cafe", "coffee"], "maxMinutes": 15, "modes": ["WALK", "TRANSIT"] }
+    "expect": {"category": ["cafe", "coffee"], "maxMinutes": 15, "modes": ["WALK", "TRANSIT"]}
   },
   {
     "id": "en-bus-limit",
     "text": "sushi within 20 minutes by bus",
-    "expect": { "category": ["sushi"], "maxMinutes": 20, "modes": ["TRANSIT"] }
+    "expect": {"category": ["sushi"], "maxMinutes": 20, "modes": ["TRANSIT"]}
   },
   {
     "id": "en-distance-limit",
     "text": "bubble tea within 1km",
-    "expect": { "category": ["bubble tea", "boba"], "maxMinutes": { "min": 8, "max": 20 } }
+    "expect": {"category": ["bubble tea", "boba"], "maxMinutes": {"min": 8, "max": 20}}
   },
   {
     "id": "en-home",
     "text": "cafe near home",
-    "expect": { "category": ["cafe", "coffee"], "useSavedHome": true, "referenceLocationText": null }
+    "expect": {"category": ["cafe", "coffee"], "useSavedHome": true, "referenceLocationText": null}
   },
   {
     "id": "en-home-house",
     "text": "korean food near my house",
-    "expect": { "category": ["korean"], "useSavedHome": true, "referenceLocationText": null }
+    "expect": {"category": ["korean"], "useSavedHome": true, "referenceLocationText": null}
   },
   {
     "id": "en-ref-station",
     "text": "ramen near Britomart",
-    "expect": { "category": ["ramen"], "useSavedHome": false, "referenceLocationText": ["britomart"] }
+    "expect": {"category": ["ramen"], "useSavedHome": false, "referenceLocationText": ["britomart"]}
   },
   {
     "id": "en-ref-landmark",
     "text": "coffee near the Sky Tower",
-    "expect": { "category": ["coffee", "cafe"], "referenceLocationText": ["sky tower"] }
+    "expect": {"category": ["coffee", "cafe"], "referenceLocationText": ["sky tower"]}
   },
   {
     "id": "en-ref-airport",
     "text": "burger near the airport",
-    "expect": { "category": ["burger"], "referenceLocationText": ["airport"] }
+    "expect": {"category": ["burger"], "referenceLocationText": ["airport"]}
   },
   {
     "id": "en-tomorrow-5pm",
     "text": "european food near Britomart tomorrow at 5pm",
-    "expect": { "category": ["european"], "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 17, "minute": 0, "maxMinutes": null }
+    "expect": {"category": ["european"], "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 17, "minute": 0, "maxMinutes": null}
   },
   {
     "id": "en-exact-time",
     "text": "pho at 7:30pm",
-    "expect": { "category": ["pho"], "targetDay": null, "hour": 19, "minute": 30 }
+    "expect": {"category": ["pho", "vietnam"], "targetDay": null, "hour": 19, "minute": 30}
   },
   {
     "id": "en-noon",
     "text": "ramen at noon",
-    "expect": { "category": ["ramen"], "hour": 12, "minute": 0 }
+    "expect": {"category": ["ramen"], "hour": 12, "minute": 0}
   },
   {
     "id": "en-friday-evening",
     "text": "italian restaurant friday evening",
-    "expect": { "category": ["italian"], "targetDay": "friday", "hour": 18, "minute": 0 }
+    "expect": {"category": ["italian"], "targetDay": "friday", "hour": 18, "minute": 0}
   },
   {
     "id": "en-lunch",
     "text": "sushi tomorrow for lunch",
-    "expect": { "category": ["sushi"], "targetDay": "tomorrow", "hour": 12, "minute": 0 }
+    "expect": {"category": ["sushi"], "targetDay": "tomorrow", "hour": 12, "minute": 0}
   },
   {
     "id": "en-dinner",
     "text": "thai food tomorrow dinner",
-    "expect": { "category": ["thai"], "targetDay": "tomorrow", "hour": 19, "minute": 0 }
+    "expect": {"category": ["thai"], "targetDay": "tomorrow", "hour": 19, "minute": 0}
   },
   {
     "id": "en-tonight",
     "text": "pizza tonight",
-    "expect": { "category": ["pizza"], "hour": 20, "minute": 0 }
+    "expect": {"category": ["pizza"], "hour": 20, "minute": 0}
   },
   {
     "id": "en-morning",
     "text": "coffee tomorrow morning",
-    "expect": { "category": ["coffee", "cafe"], "targetDay": "tomorrow", "hour": 9, "minute": 0 }
+    "expect": {"category": ["coffee", "cafe"], "targetDay": "tomorrow", "hour": 9, "minute": 0}
   },
   {
     "id": "en-afternoon",
     "text": "bakery saturday afternoon",
-    "expect": { "category": ["bakery"], "targetDay": "saturday", "hour": 15, "minute": 0 }
+    "expect": {"category": ["bakery"], "targetDay": "saturday", "hour": 15, "minute": 0}
   },
   {
     "id": "en-no-time-given",
     "text": "pho",
-    "expect": { "category": ["pho"], "maxMinutes": null, "targetDay": null, "hour": null, "minute": null, "confident": true }
+    "expect": {"category": ["pho"], "maxMinutes": null, "targetDay": null, "hour": null, "minute": null, "confident": true}
   },
   {
     "id": "en-everything",
     "text": "korean bbq within 20 min of Newmarket on friday at 6pm",
-    "expect": { "category": ["korean"], "maxMinutes": 20, "referenceLocationText": ["newmarket"], "targetDay": "friday", "hour": 18, "minute": 0 }
+    "expect": {"category": ["korean"], "maxMinutes": 20, "referenceLocationText": ["newmarket"], "targetDay": "friday", "hour": 18, "minute": 0}
   },
   {
     "id": "en-vague-eat",
     "text": "somewhere to eat",
-    "expect": { "confident": false, "asksQuestion": true }
+    "expect": {"confident": false, "asksQuestion": true}
   },
   {
     "id": "en-vague-food",
     "text": "food",
-    "expect": { "confident": false, "asksQuestion": true }
+    "expect": {"confident": false, "asksQuestion": true}
   },
   {
     "id": "en-vague-restaurant",
     "text": "restaurant",
-    "expect": { "confident": false, "asksQuestion": true }
+    "expect": {"confident": false, "asksQuestion": true}
   },
   {
     "id": "en-vague-near-me",
     "text": "what's near me",
-    "expect": { "confident": false, "asksQuestion": true }
+    "expect": {"confident": false, "asksQuestion": true}
   },
   {
     "id": "refine-walking-only",
-    "previous": { "category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true },
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
     "text": "actually walking only",
-    "expect": { "category": ["ramen"], "modes": ["WALK"], "confident": true }
+    "expect": {"category": ["ramen"], "modes": ["WALK"], "confident": true}
   },
   {
     "id": "refine-new-time",
-    "previous": { "category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true },
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
     "text": "make it tomorrow at 6pm",
-    "expect": { "category": ["ramen"], "targetDay": "tomorrow", "hour": 18, "minute": 0 }
+    "expect": {"category": ["ramen"], "targetDay": "tomorrow", "hour": 18, "minute": 0}
   },
   {
     "id": "refine-time-limit",
-    "previous": { "category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true },
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
     "text": "within 10 minutes",
-    "expect": { "category": ["ramen"], "maxMinutes": 10 }
+    "expect": {"category": ["ramen"], "maxMinutes": 10}
   },
   {
     "id": "refine-add-place",
-    "previous": { "category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true },
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
     "text": "near Britomart instead",
-    "expect": { "category": ["ramen"], "referenceLocationText": ["britomart"] }
+    "expect": {"category": ["ramen"], "referenceLocationText": ["britomart"]}
   },
   {
     "id": "refine-keeps-time",
-    "previous": { "category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 17, "minute": 0, "confident": true },
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 17, "minute": 0, "confident": true},
     "text": "actually walking only",
-    "expect": { "category": ["ramen"], "modes": ["WALK"], "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 17, "minute": 0 }
+    "expect": {"category": ["ramen"], "modes": ["WALK"], "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 17, "minute": 0}
   },
   {
     "id": "refine-fresh-request",
-    "previous": { "category": "ramen", "maxMinutes": 10, "modes": ["WALK"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 17, "minute": 0, "confident": true },
+    "previous": {"category": "ramen", "maxMinutes": 10, "modes": ["WALK"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 17, "minute": 0, "confident": true},
     "text": "coffee near the Sky Tower",
-    "expect": { "category": ["coffee", "cafe"], "maxMinutes": null, "referenceLocationText": ["sky tower"], "targetDay": null, "hour": null }
+    "expect": {"category": ["coffee", "cafe"], "maxMinutes": null, "referenceLocationText": ["sky tower"], "targetDay": null, "hour": null}
   },
   {
     "id": "refine-answers-question",
-    "previous": { "category": "", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": false },
+    "previous": {"category": "", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": false},
     "text": "sushi",
-    "expect": { "category": ["sushi"], "confident": true, "asksQuestion": false }
+    "expect": {"category": ["sushi"], "confident": true, "asksQuestion": false}
   },
   {
     "id": "refine-answers-question-keeps-fields",
-    "previous": { "category": "", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 19, "minute": 0, "confident": false },
+    "previous": {"category": "", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 19, "minute": 0, "confident": false},
     "text": "thai",
-    "expect": { "category": ["thai"], "confident": true, "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 19 }
+    "expect": {"category": ["thai"], "confident": true, "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 19}
   },
   {
     "id": "ko-basic",
     "text": "근처 라멘집",
-    "expect": { "category": ["ramen", "라멘"], "maxMinutes": null, "useSavedHome": false, "referenceLocationText": null, "confident": true }
+    "expect": {"category": ["ramen", "라멘"], "maxMinutes": null, "useSavedHome": false, "referenceLocationText": null, "confident": true, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false}
   },
   {
     "id": "ko-closest-brand",
     "text": "가장 가까운 스타벅스",
-    "expect": { "category": ["starbucks", "스타벅스"], "maxMinutes": null, "targetDay": null, "hour": null, "confident": true }
+    "expect": {"category": ["starbucks", "스타벅스"], "maxMinutes": null, "targetDay": null, "hour": null, "confident": true}
   },
   {
     "id": "ko-home",
     "text": "집 근처 한국식 중국집",
-    "expect": { "category": ["chinese", "중국", "중식", "짜장"], "useSavedHome": true, "referenceLocationText": null }
+    "expect": {"category": ["chinese", "중국", "중식", "짜장"], "useSavedHome": true, "referenceLocationText": null}
   },
   {
     "id": "ko-ref-station",
     "text": "브리토마트 근처 카페",
-    "expect": { "category": ["cafe", "coffee", "카페", "커피"], "referenceLocationText": ["britomart", "브리토마트"], "useSavedHome": false }
+    "expect": {"category": ["cafe", "coffee", "카페", "커피"], "referenceLocationText": ["britomart", "브리토마트"], "useSavedHome": false}
   },
   {
     "id": "ko-tomorrow-5pm",
     "text": "내일 저녁 5시에 브리토마트 근처 유럽 음식",
-    "expect": { "category": ["european", "유럽"], "referenceLocationText": ["britomart", "브리토마트"], "targetDay": "tomorrow", "hour": 17, "minute": 0 }
+    "expect": {"category": ["european", "유럽"], "referenceLocationText": ["britomart", "브리토마트"], "targetDay": "tomorrow", "hour": 17, "minute": 0}
   },
   {
     "id": "ko-walk-limit",
     "text": "걸어서 10분 이내 초밥집",
-    "expect": { "category": ["sushi", "초밥", "스시"], "maxMinutes": 10, "modes": ["WALK"] }
+    "expect": {"category": ["sushi", "초밥", "스시"], "maxMinutes": 10, "modes": ["WALK"]}
   },
   {
     "id": "ko-bus-limit",
     "text": "버스로 20분 이내 베트남 쌀국수",
-    "expect": { "category": ["vietnam", "pho", "쌀국수", "베트남"], "maxMinutes": 20, "modes": ["TRANSIT"] }
+    "expect": {"category": ["vietnam", "pho", "쌀국수", "베트남"], "maxMinutes": 20, "modes": ["TRANSIT"]}
   },
   {
     "id": "ko-friday-evening",
     "text": "금요일 저녁에 이탈리안 레스토랑",
-    "expect": { "category": ["italian", "이탈리안", "이탈리아"], "targetDay": "friday", "hour": 18, "minute": 0 }
+    "expect": {"category": ["italian", "이탈리안", "이탈리아"], "targetDay": "friday", "hour": 18, "minute": 0}
   },
   {
     "id": "ko-lunch",
     "text": "내일 점심 국밥",
-    "expect": { "category": ["gukbap", "국밥", "korean"], "targetDay": "tomorrow", "hour": 12, "minute": 0 }
+    "expect": {"category": ["gukbap", "국밥", "korean"], "targetDay": "tomorrow", "hour": 12, "minute": 0}
   },
   {
     "id": "ko-tonight",
     "text": "오늘 밤에 치킨",
-    "expect": { "category": ["chicken", "치킨"], "hour": 20, "minute": 0 }
+    "expect": {"category": ["chicken", "치킨"], "hour": 20, "minute": 0}
   },
   {
     "id": "ko-vague-eat",
     "text": "먹을 곳",
-    "expect": { "confident": false, "asksQuestion": true }
+    "expect": {"confident": false, "asksQuestion": true}
   },
   {
     "id": "ko-vague-food",
     "text": "음식",
-    "expect": { "confident": false, "asksQuestion": true }
+    "expect": {"confident": false, "asksQuestion": true}
   },
   {
     "id": "ko-refine-walking-only",
-    "previous": { "category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true },
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
     "text": "걸어서 갈 수 있는 곳만",
-    "expect": { "category": ["ramen", "라멘"], "modes": ["WALK"] }
+    "expect": {"category": ["ramen", "라멘"], "modes": ["WALK"]}
   },
   {
     "id": "ko-refine-answers-question",
-    "previous": { "category": "", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": false },
+    "previous": {"category": "", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": false},
     "text": "초밥",
-    "expect": { "category": ["sushi", "초밥", "스시"], "confident": true, "asksQuestion": false }
+    "expect": {"category": ["sushi", "초밥", "스시"], "confident": true, "asksQuestion": false}
+  },
+  {
+    "id": "en-best",
+    "text": "best ramen near Sky Tower",
+    "expect": {"category": ["ramen"], "categoryAvoids": ["best"], "rankBy": "best", "referenceLocationText": ["sky tower"]}
+  },
+  {
+    "id": "en-top-rated",
+    "text": "top rated sushi",
+    "expect": {"category": ["sushi"], "categoryAvoids": ["top", "rated"], "rankBy": "best"}
+  },
+  {
+    "id": "en-best-with-limit",
+    "text": "highest rated cafe within 15 minutes",
+    "expect": {"category": ["cafe", "coffee"], "rankBy": "best", "maxMinutes": 15}
+  },
+  {
+    "id": "en-popular",
+    "text": "most popular bubble tea place",
+    "expect": {"category": ["bubble tea", "boba"], "rankBy": "best"}
+  },
+  {
+    "id": "en-closest-is-nearest",
+    "text": "closest ramen",
+    "expect": {"category": ["ramen"], "rankBy": "nearest", "maxMinutes": null}
+  },
+  {
+    "id": "en-best-alone",
+    "text": "the best",
+    "expect": {"confident": false, "asksQuestion": true}
+  },
+  {
+    "id": "en-cheap",
+    "text": "cheap ramen near me",
+    "expect": {"category": ["ramen"], "categoryAvoids": ["cheap"], "wantsCheap": true, "rankBy": "nearest", "wantsVegetarian": false}
+  },
+  {
+    "id": "en-cheap-vegetarian-lunch",
+    "text": "cheap vegetarian lunch",
+    "expect": {"wantsCheap": true, "wantsVegetarian": true, "confident": true, "asksQuestion": false}
+  },
+  {
+    "id": "en-vegan",
+    "text": "vegan cafe near Britomart",
+    "expect": {"category": ["cafe", "coffee", "vegan", "vegetarian"], "wantsVegetarian": true, "referenceLocationText": ["britomart"], "wantsCheap": false}
+  },
+  {
+    "id": "en-outdoor",
+    "text": "cafe with outdoor seating",
+    "expect": {"category": ["cafe", "coffee"], "wantsOutdoorSeating": true, "wantsCheap": false, "wantsVegetarian": false}
+  },
+  {
+    "id": "en-patio-day",
+    "text": "brunch with a patio on sunday morning",
+    "expect": {"wantsOutdoorSeating": true, "targetDay": "sunday", "hour": 9}
+  },
+  {
+    "id": "en-cheap-alone",
+    "text": "cheap",
+    "expect": {"confident": false, "asksQuestion": true}
+  },
+  {
+    "id": "refine-best",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "text": "the best rated one instead",
+    "expect": {"category": ["ramen"], "rankBy": "best"}
+  },
+  {
+    "id": "refine-cheap",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "text": "only cheap ones",
+    "expect": {"category": ["ramen"], "wantsCheap": true}
+  },
+  {
+    "id": "refine-keeps-preferences",
+    "previous": {"category": "cafe", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "best", "wantsCheap": false, "wantsVegetarian": true, "wantsOutdoorSeating": false, "confident": true},
+    "text": "actually walking only",
+    "expect": {"category": ["cafe", "coffee"], "modes": ["WALK"], "rankBy": "best", "wantsVegetarian": true}
+  },
+  {
+    "id": "ko-best",
+    "text": "제일 맛있는 라멘",
+    "expect": {"category": ["ramen", "라멘"], "rankBy": "best", "categoryAvoids": ["맛있"]}
+  },
+  {
+    "id": "ko-high-rated",
+    "text": "평점 높은 카페",
+    "expect": {"category": ["cafe", "coffee", "카페", "커피"], "rankBy": "best"}
+  },
+  {
+    "id": "ko-closest-is-nearest",
+    "text": "가장 가까운 카페",
+    "expect": {"category": ["cafe", "coffee", "카페", "커피"], "rankBy": "nearest", "maxMinutes": null}
+  },
+  {
+    "id": "ko-cheap-vegetarian",
+    "text": "저렴한 채식 식당",
+    "expect": {"wantsCheap": true, "wantsVegetarian": true, "confident": true}
+  },
+  {
+    "id": "ko-outdoor",
+    "text": "야외 좌석 있는 카페",
+    "expect": {"category": ["cafe", "coffee", "카페", "커피"], "wantsOutdoorSeating": true}
   }
 ]

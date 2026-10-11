@@ -60,6 +60,20 @@ export const NearbyQuerySchema = z.object({
     .max(59)
     .nullable()
     .describe('The minute the user means; 0 if they gave an hour but no minute. Null if no specific time was stated at all.'),
+  rankBy: z
+    .enum(['nearest', 'best'])
+    .describe(
+      "'best' only when the user explicitly asked for quality — best, top rated, highest rated, most popular, recommended, tastiest, or the equivalent in any language. Everything else, including 'closest', 'nearest', 'near me', and no preference at all, is 'nearest'."
+    ),
+  wantsCheap: z
+    .boolean()
+    .describe("True only if the user asked for cheap / budget / affordable / inexpensive. False otherwise — never guessed."),
+  wantsVegetarian: z
+    .boolean()
+    .describe('True only if the user asked for vegetarian or vegan food. False otherwise — never guessed.'),
+  wantsOutdoorSeating: z
+    .boolean()
+    .describe("True only if the user asked for outdoor seating — a patio, terrace, garden, 'al fresco', 'sit outside'. False otherwise — never guessed."),
   confident: z
     .boolean()
     .describe('False if a search category could not be confidently identified from the text.'),
@@ -89,7 +103,8 @@ same degree of vagueness must get the same treatment whether it's asked in Engli
 don't let one language's phrasing read as more specific than an equivalent phrasing in another. Never invent a category, time budget, or
 travel mode that has no basis in the text at all — a plain "closest X" or "nearest X" has no time budget,
 so maxMinutes must be null there, not a guessed number. Only set maxMinutes when the user actually gave a
-time or distance limit. modes defaulting to both WALK and TRANSIT when unspecified is not a guess about
+time or distance limit. A stated distance counts as a limit: convert it at about 12 minutes of walking per
+kilometre ("within 1km" is 12, "500m" is 6), rounded to a whole minute. modes defaulting to both WALK and TRANSIT when unspecified is not a guess about
 the search itself, just a reasonable default for a missing preference.
 
 Whenever confident is false, also write clarifyingQuestion: a short, specific, friendly question asking
@@ -112,6 +127,16 @@ routing and opening-hours check downstream need a concrete hour, and leaving it 
 named would silently check against whatever moment the request happens to arrive at, which is never what
 "Friday evening" means. Only leave hour and minute null when the user gave no time reference of any kind.
 
+rankBy, wantsCheap, wantsVegetarian and wantsOutdoorSeating are preferences about which places to show and
+in what order — they are applied afterwards to real Google Places data (ratings, price level, menu and
+seating details), so you never judge a place yourself. Set them only when the user actually said so, and
+leave the defaults (rankBy 'nearest', the rest false) otherwise. "Best" and "cheap" are not part of the
+category: "best ramen" is category ramen with rankBy 'best'. A dietary word that names the kind of place
+may stay in the category ("vegetarian restaurant") as well as setting wantsVegetarian. A dietary
+requirement (vegetarian, vegan) is itself specific enough to search ("vegetarian restaurant"), even with
+only a generic word like "lunch" or "food" beside it, so "cheap vegetarian lunch" is confident — but
+"cheap" or "best" on its own, with no food or place at all, is still a missing category.
+
 You may be given a "Previous request" as extra context — that's what was extracted from the user's last
 message, not something they just said. Decide whether the new message is a follow-up refinement of it or
 a fresh, independent request:
@@ -133,7 +158,14 @@ export type NearbyQuery = z.infer<typeof NearbyQuerySchema>;
 // What a follow-up turn is given as context: the last turn's result without its clarifying
 // question (the model already knows what it asked without seeing it echoed back). confident is
 // kept — it's how the model tells a refinement apart from an answer to its own question.
-export const PreviousIntentSchema = NearbyQuerySchema.omit({ clarifyingQuestion: true });
+// The preference fields default when absent, so a follow-up still works when the previous turn was
+// parsed before they existed (e.g. a chat saved on the phone by an older version of the app).
+export const PreviousIntentSchema = NearbyQuerySchema.omit({ clarifyingQuestion: true }).extend({
+  rankBy: NearbyQuerySchema.shape.rankBy.default('nearest'),
+  wantsCheap: z.boolean().default(false),
+  wantsVegetarian: z.boolean().default(false),
+  wantsOutdoorSeating: z.boolean().default(false),
+});
 export type PreviousIntent = z.infer<typeof PreviousIntentSchema>;
 
 // Chosen with the eval (npm run eval): Opus 5.5, Sonnet 5.5 and Haiku 5.5 all passed every case, and Haiku

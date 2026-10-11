@@ -7,6 +7,8 @@
 //   npm run eval                          # all cases, the Worker's current model
 //   npm run eval -- --model claude-haiku-5-5
 //   npm run eval -- --filter ko-          # only cases whose id contains "ko-"
+//   npm run eval -- --repeat 5            # every case five times — the model is not deterministic, so
+//                                         # one run can't tell a real regression from a coin flip
 //
 // Needs ANTHROPIC_API_KEY (loaded from .dev.vars by the npm script). Each case is one real API call.
 import Anthropic from '@anthropic-ai/sdk';
@@ -17,11 +19,13 @@ import { PARSE_MODEL, PreviousIntentSchema, parseNearbyIntent, type NearbyQuery,
 // Only the fields listed under `expect` are checked, so a case can pin down just what it is about.
 //   category: lower-case substrings, any one of which must appear (the model may answer in
 //             English or Korean, so a case lists the acceptable spellings)
+//   categoryAvoids: substrings that must NOT appear in the category (e.g. "best" belongs in rankBy)
 //   maxMinutes: an exact number, null, or { min, max } for "some number in this range"
 //   referenceLocationText: null, or substrings like category
 //   asksQuestion: whether a clarifying question was written
 interface Expect {
   category?: string[];
+  categoryAvoids?: string[];
   maxMinutes?: number | null | { min: number; max: number };
   modes?: string[];
   useSavedHome?: boolean;
@@ -29,6 +33,10 @@ interface Expect {
   targetDay?: string | null;
   hour?: number | null;
   minute?: number | null;
+  rankBy?: string;
+  wantsCheap?: boolean;
+  wantsVegetarian?: boolean;
+  wantsOutdoorSeating?: boolean;
   confident?: boolean;
   asksQuestion?: boolean;
 }
@@ -53,6 +61,9 @@ function check(got: NearbyQuery, expect: Expect): string[] {
     const category = got.category.toLowerCase();
     if (!expect.category.some((s) => category.includes(s.toLowerCase()))) fail('category', `one of ${show(expect.category)}`, got.category);
   }
+  for (const word of expect.categoryAvoids ?? []) {
+    if (got.category.toLowerCase().includes(word.toLowerCase())) fail('category', `no "${word}" in it`, got.category);
+  }
   if (expect.maxMinutes !== undefined) {
     const want = expect.maxMinutes;
     const ok =
@@ -69,7 +80,7 @@ function check(got: NearbyQuery, expect: Expect): string[] {
     const ok = want === null ? place === null : place !== null && want.some((s) => place.includes(s.toLowerCase()));
     if (!ok) fail('referenceLocationText', want === null ? null : `one of ${show(want)}`, got.referenceLocationText);
   }
-  for (const field of ['targetDay', 'hour', 'minute', 'confident'] as const) {
+  for (const field of ['targetDay', 'hour', 'minute', 'rankBy', 'wantsCheap', 'wantsVegetarian', 'wantsOutdoorSeating', 'confident'] as const) {
     if (expect[field] !== undefined && got[field] !== expect[field]) fail(field, expect[field], got[field]);
   }
   if (expect.asksQuestion !== undefined) {
@@ -123,7 +134,9 @@ async function main() {
   }
   const model = argValue('--model') ?? PARSE_MODEL;
   const filter = argValue('--filter');
-  const cases = (JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf-8')) as Case[]).filter((c) => !filter || c.id.includes(filter));
+  const repeat = Number(argValue('--repeat') ?? 1);
+  const selected = (JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf-8')) as Case[]).filter((c) => !filter || c.id.includes(filter));
+  const cases = selected.flatMap((c) => Array.from({ length: repeat }, () => c));
   const client = new Anthropic();
 
   console.log(`Model ${model} — ${cases.length} cases\n`);
