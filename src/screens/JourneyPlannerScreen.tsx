@@ -20,6 +20,7 @@ import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { getAlertsForRoutes } from '../services/alerts';
 import { loadActiveJourney, saveActiveJourney, clearActiveJourney } from '../services/activeJourney';
+import { clampToNow } from '../services/departureTime';
 import { decodePolyline, getTransitRoutes } from '../services/directions';
 import { estimateFare, FareEstimate } from '../services/fareZones';
 import { getRouteIdsByShortName } from '../services/gtfs';
@@ -307,7 +308,14 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
     };
   }, [screenState, journeyRoute]);
 
-  async function runSearch(searchFrom: JourneyEndpoint, searchTo: JourneyEndpoint, searchDepartureTime = departureTime) {
+  async function runSearch(searchFrom: JourneyEndpoint, searchTo: JourneyEndpoint, requestedDepartureTime = departureTime) {
+    // --- Departure Time Floor ---
+    // Every search path (Get Directions, changing From/To, a recent trip, a handoff from My
+    // Trips or Find Nearby) ends up here, so this is the one place a stale time gets caught —
+    // e.g. missing a bus, then switching From to the current location an hour after the
+    // picker was last set. The picker is updated too, so the form shows what was searched.
+    const searchDepartureTime = clampToNow(requestedDepartureTime);
+    setDepartureTime(searchDepartureTime);
     setLoading(true);
     setError('');
     setRouteOptions([]);
