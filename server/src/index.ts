@@ -19,9 +19,11 @@ export interface Env {
 const ExplainRequestSchema = z.object({
   query: z.string(),
   // False when the user's text gave no day/time at all — the results then weren't filtered by
-  // opening hours (see nearbySearch.ts), so some may be closed right now. True means they did
-  // give a time, and the results are already confirmed open then.
+  // opening hours (see nearbySearch.ts), so some may be closed by the time the user gets there.
+  // True means they did give a time, and the results are already confirmed open on arrival.
   hadExplicitTime: z.boolean(),
+  // How the (already ordered) results were ranked — closest first, or best rated first.
+  rankedBy: z.enum(['nearest', 'best']).default('nearest'),
   results: z.array(
     z.object({
       name: z.string(),
@@ -30,7 +32,14 @@ const ExplainRequestSchema = z.object({
       routeShortName: z.string().optional(),
       rating: z.number().optional(),
       editorialSummary: z.string().optional(),
-      isOpenNow: z.boolean().optional(),
+      // Judged at departure + travel time, not at departure (see withArrivalHours).
+      isOpenOnArrival: z.boolean().optional(),
+      // Only present when it is open on arrival but closes within the hour after.
+      closesInMinutes: z.number().optional(),
+      // 0 (free) to 4 (very expensive); each detail is only present when Places actually knows it.
+      priceLevel: z.number().optional(),
+      servesVegetarianFood: z.boolean().optional(),
+      outdoorSeating: z.boolean().optional(),
       todayHoursText: z.string().optional(),
     })
   ),
@@ -42,15 +51,25 @@ The user asked a question in free text. You're given the ACTUAL results a real s
 real places with real travel times, already ranked. Write a warm, concise reply (2-4 sentences) that
 directly answers their question using ONLY the results you're given, in plain prose (not a bulleted list
 — the results are already shown to the user as a list below your reply, so don't repeat them as one).
+Plain text only: no markdown, no bold or asterisks — your reply is shown exactly as written. Reply in the
+same language the user's question is written in (Korean question, Korean reply).
 Never invent a place, distance, time, or detail that isn't in the provided list. If the list is empty,
 say so plainly and suggest trying a different time, place, or category — don't apologize at length.
 
-When hadExplicitTime is false, the results were NOT filtered by opening hours — some may show
-isOpenNow: false. Don't hide this: mention which ones (if any) look closed right now using their
-todayHoursText, and end by naturally inviting a specific time if that would help ("Want me to check
-what's open at a particular time?") — the user never said when they're going, so ask rather than assume.
-When hadExplicitTime is true, the results are already confirmed open at the time asked about, so there's
-nothing to caveat or ask about.
+Opening hours are judged at the moment the user would ARRIVE (when they leave plus the travel time), not
+when they leave. When hadExplicitTime is false, the results were NOT filtered by opening hours — some may
+be marked "closed by the time you arrive". Don't hide this: mention which ones (if any) would be closed
+when the user gets there, using their hours text, and end by naturally inviting a specific time if that
+would help ("Want me to check what's open at a particular time?") — the user never said when they're
+going, so ask rather than assume. When hadExplicitTime is true, the results are already confirmed open on
+arrival, so there's nothing to caveat about being closed or ask about the time. Either way, if a result
+is marked as closing a few minutes after the user would arrive, say so — it's worth knowing before they
+set off.
+
+The results are ordered already: closest first, or best rated first when rankedBy is "best" — in that
+case it's natural to point out the top pick and why (its rating), not just the nearest. Mention a price,
+vegetarian or outdoor-seating detail only for a result that actually lists it. If the user asked for one
+of those and a result doesn't list it, that just means it wasn't confirmed — never claim it for that place.
 
 You are not picking, ranking, or filtering anything — that's already done. Just explain what was found.`;
 
@@ -153,21 +172,41 @@ async function handleExplainResults(request: Request, client: Anthropic): Promis
           .map((r) => {
             const travel = r.mode === 'WALK' ? `${r.durationMinutes} min walk` : `${r.durationMinutes} min via ${r.routeShortName ?? 'transit'}`;
             const rating = r.rating != null ? `, rated ${r.rating}★` : '';
+            const details = [
+              r.priceLevel != null && r.priceLevel >= 1 ? `price ${'$'.repeat(r.priceLevel)}` : null,
+              r.servesVegetarianFood ? 'has vegetarian options' : null,
+              r.outdoorSeating ? 'has outdoor seating' : null,
+            ]
+              .filter(Boolean)
+              .map((d) => `, ${d}`)
+              .join('');
             const summary = r.editorialSummary ? ` — ${r.editorialSummary}` : '';
-            const hours = r.isOpenNow != null ? `, ${r.isOpenNow ? 'open now' : 'closed now'}${r.todayHoursText ? ` (${r.todayHoursText})` : ''}` : '';
-            return `- ${r.name}: ${travel}${rating}${hours}${summary}`;
+            const status =
+              r.isOpenOnArrival == null
+                ? null
+                : !r.isOpenOnArrival
+                  ? 'closed by the time you arrive'
+                  : r.closesInMinutes != null
+                    ? `open when you arrive but closes ${r.closesInMinutes} min after`
+                    : 'open when you arrive';
+            const hours = status ? `, ${status}${r.todayHoursText ? ` (${r.todayHoursText})` : ''}` : '';
+            return `- ${r.name}: ${travel}${rating}${details}${hours}${summary}`;
           })
           .join('\n');
 
   try {
     const response = await client.messages.create({
+      // Kept on Opus on purpose: Haiku 5.5 and Sonnet 5.5 answered a Korean question in English, even
+      // with an explicit reply-in-the-user's-language rule, and the reply is what the user reads.
       model: 'claude-opus-5-5',
-      max_tokens: 300,
+      // Opus 5.5 always thinks first, and that hidden reasoning shares this budget — at 300 the
+      // reply came back empty or cut off mid-sentence. The visible reply is only a few sentences.
+      max_tokens: 2000,
       system: EXPLAIN_SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',
-          content: `User's question: "${parsed.query}"\nhadExplicitTime: ${parsed.hadExplicitTime}\n\nActual results found:\n${resultsText}`,
+          content: `User's question: "${parsed.query}"\nhadExplicitTime: ${parsed.hadExplicitTime}\nrankedBy: ${parsed.rankedBy}\n\nActual results found:\n${resultsText}`,
         },
       ],
     });

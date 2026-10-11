@@ -10,15 +10,18 @@ import { JourneyEndpoint } from '../types';
 import {
   chooseTravelMode,
   filterAndRankByDuration,
-  isOpenAt,
-  pruneByStraightLineDistance,
+  isOpenDuring,
+  priceLevelFromPlaces,
   resolveTargetDateTime,
+  selectCandidatesForRouting,
+  withArrivalHours,
   DEFAULT_MAX_ROUTED_CANDIDATES,
+  DEFAULT_RESULT_LIMIT,
   PRUNE_RADIUS_METERS,
   UNBOUNDED_PRUNE_RADIUS_METERS,
   NearbyCandidate,
-  OpeningPeriod,
   PrunedCandidate,
+  RankBy,
   RoutedCandidate,
   TargetDay,
   TravelMode,
@@ -47,6 +50,12 @@ export interface NearbySearchIntent {
   targetDay: TargetDay | null;
   hour: number | null;
   minute: number | null;
+  // Closest first (the default) or best rated first. Optional on all four so an older Worker that
+  // doesn't send them, or a chat saved before they existed, still works as a plain nearest search.
+  rankBy?: RankBy;
+  wantsCheap?: boolean;
+  wantsVegetarian?: boolean;
+  wantsOutdoorSeating?: boolean;
 }
 
 export type NearbySearchResult = RoutedCandidate;
@@ -104,13 +113,19 @@ export async function parseNearbyQuery(text: string, previousIntent?: NearbySear
 // --- Result Explanation ---
 // Hands the client's own already-computed real results back to Claude for a short written
 // reply — never asked to pick, rank, or invent anything, only to explain what was found.
-export async function explainResults(query: string, results: NearbySearchResult[], hadExplicitTime: boolean): Promise<string> {
+export async function explainResults(
+  query: string,
+  results: NearbySearchResult[],
+  hadExplicitTime: boolean,
+  rankedBy: RankBy = 'nearest'
+): Promise<string> {
   const response = await fetch(`${getNearbyProxyUrl()}/explain-results`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query,
       hadExplicitTime,
+      rankedBy,
       results: results.map((r) => ({
         name: r.name,
         durationMinutes: r.durationMinutes,
@@ -118,8 +133,12 @@ export async function explainResults(query: string, results: NearbySearchResult[
         ...(r.routeShortName ? { routeShortName: r.routeShortName } : {}),
         ...(r.rating != null ? { rating: r.rating } : {}),
         ...(r.editorialSummary ? { editorialSummary: r.editorialSummary } : {}),
-        ...(r.isOpenNow != null ? { isOpenNow: r.isOpenNow } : {}),
+        ...(r.isOpenOnArrival != null ? { isOpenOnArrival: r.isOpenOnArrival } : {}),
+        ...(r.closesInMinutes != null ? { closesInMinutes: r.closesInMinutes } : {}),
         ...(r.todayHoursText ? { todayHoursText: r.todayHoursText } : {}),
+        ...(r.priceLevel != null ? { priceLevel: r.priceLevel } : {}),
+        ...(r.servesVegetarianFood != null ? { servesVegetarianFood: r.servesVegetarianFood } : {}),
+        ...(r.outdoorSeating != null ? { outdoorSeating: r.outdoorSeating } : {}),
       })),
     }),
   });
@@ -154,30 +173,24 @@ interface PlacesTextSearchResponse {
     userRatingCount?: number;
     editorialSummary?: { text?: string };
     googleMapsUri?: string;
+    priceLevel?: string;
+    servesVegetarianFood?: boolean;
+    outdoorSeating?: boolean;
   }[];
-}
-
-export interface NearbyCandidateWithHours extends NearbyCandidate {
-  // null means Places returned no opening-hours data at all for this candidate — distinct
-  // from an empty periods list, which would mean "confirmed never open" (see isOpenAt).
-  openingPeriods: OpeningPeriod[] | null;
-  // Raw per-day formatted text, kept alongside openingPeriods until a reference moment (the
-  // stated time, or now) is known — see the isOpenNow/todayHoursText computation in searchNearby.
-  weekdayDescriptions: string[] | null;
 }
 
 async function textSearchPlaces(
   category: string,
   near: { lat: number; lon: number },
   radiusMeters: number
-): Promise<NearbyCandidateWithHours[]> {
+): Promise<NearbyCandidate[]> {
   const response = await fetch(PLACES_TEXT_SEARCH_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': getApiKey(),
       'X-Goog-FieldMask':
-        'places.id,places.displayName,places.location,places.regularOpeningHours,places.currentOpeningHours,places.rating,places.userRatingCount,places.editorialSummary,places.googleMapsUri',
+        'places.id,places.displayName,places.location,places.regularOpeningHours,places.currentOpeningHours,places.rating,places.userRatingCount,places.editorialSummary,places.googleMapsUri,places.priceLevel,places.servesVegetarianFood,places.outdoorSeating',
     },
     body: JSON.stringify({
       textQuery: category,
@@ -193,28 +206,39 @@ async function textSearchPlaces(
     .filter((p) => p.id && p.displayName?.text && p.location?.latitude != null && p.location?.longitude != null)
     .map((p) => {
       const hours = p.currentOpeningHours ?? p.regularOpeningHours;
+      const priceLevel = priceLevelFromPlaces(p.priceLevel);
       return {
         id: p.id!,
         name: p.displayName!.text!,
         lat: p.location!.latitude!,
         lon: p.location!.longitude!,
+        // null means Places returned no opening-hours data at all — distinct from an empty
+        // list, which would mean "confirmed never open" (see isOpenAt).
         openingPeriods: hours?.periods
           ? hours.periods
-              .filter((period) => period.open && period.close)
-              .map((period) => ({
-                openDay: period.open!.day ?? 0,
-                openHour: period.open!.hour ?? 0,
-                openMinute: period.open!.minute ?? 0,
-                closeDay: period.close!.day ?? 0,
-                closeHour: period.close!.hour ?? 0,
-                closeMinute: period.close!.minute ?? 0,
-              }))
+              .filter((period) => period.open)
+              .map((period) => {
+                // Places leaves `close` out for a place that is open around the clock; a period
+                // that closes the moment it opens is how isOpenAt reads "the whole week".
+                const close = period.close ?? period.open!;
+                return {
+                  openDay: period.open!.day ?? 0,
+                  openHour: period.open!.hour ?? 0,
+                  openMinute: period.open!.minute ?? 0,
+                  closeDay: close.day ?? 0,
+                  closeHour: close.hour ?? 0,
+                  closeMinute: close.minute ?? 0,
+                };
+              })
           : null,
         weekdayDescriptions: hours?.weekdayDescriptions ?? null,
         ...(p.rating != null ? { rating: p.rating } : {}),
         ...(p.userRatingCount != null ? { userRatingCount: p.userRatingCount } : {}),
         ...(p.editorialSummary?.text ? { editorialSummary: p.editorialSummary.text } : {}),
         ...(p.googleMapsUri ? { mapsUri: p.googleMapsUri } : {}),
+        ...(priceLevel !== undefined ? { priceLevel } : {}),
+        ...(p.servesVegetarianFood != null ? { servesVegetarianFood: p.servesVegetarianFood } : {}),
+        ...(p.outdoorSeating != null ? { outdoorSeating: p.outdoorSeating } : {}),
       };
     });
 }
@@ -317,8 +341,8 @@ async function routeToCandidate(
 }
 
 // The whole pipeline: resolve where/when the search is actually for -> category search ->
-// cheap distance pruning -> mode filtering -> real routing on the survivors only -> filter to
-// the time budget (if any) -> soonest first.
+// cheap distance pruning -> mode filtering -> real routing on the survivors only -> opening hours
+// at the moment the user would arrive -> filter to the time budget (if any) -> soonest first.
 export async function searchNearby(
   userLocation: { lat: number; lon: number; label: string },
   intent: NearbySearchIntent,
@@ -331,30 +355,47 @@ export async function searchNearby(
   const originLabel = reference?.name ?? userLocation.label;
   const departureTime = resolveTargetDateTime(new Date(), intent.targetDay, intent.hour, intent.minute);
 
-  const searchRadius = intent.maxMinutes === null ? UNBOUNDED_PRUNE_RADIUS_METERS : PRUNE_RADIUS_METERS;
+  const rankBy = intent.rankBy ?? 'nearest';
+  const rankOptions = {
+    rankBy,
+    requirements: {
+      wantsCheap: intent.wantsCheap,
+      wantsVegetarian: intent.wantsVegetarian,
+      wantsOutdoorSeating: intent.wantsOutdoorSeating,
+    },
+  };
+  // "Closest X" with no limit searches all of greater Auckland, since the answer is simply whatever is
+  // closest. "Best X" with no limit can't do the same — the best ramen in the whole region isn't a
+  // useful answer to "near me" — so it stays within the ordinary radius.
+  const searchRadius = intent.maxMinutes === null && rankBy === 'nearest' ? UNBOUNDED_PRUNE_RADIUS_METERS : PRUNE_RADIUS_METERS;
   const places = await textSearchPlaces(intent.category, origin, searchRadius);
 
-  // referenceMoment is the stated time, or "now" as a display default — not a stated
-  // constraint, so it annotates every candidate rather than silently dropping any of them
-  // (same reasoning as maxMinutes: an unstated constraint doesn't get enforced just because
-  // it has a convenient default value — see the "closest yogost" fix).
-  const referenceMoment = departureTime ?? new Date();
-  const annotated: NearbyCandidate[] = places.map((p) => ({
-    ...p,
-    isOpenNow: isOpenAt(p.openingPeriods, referenceMoment),
-    todayHoursText: p.weekdayDescriptions?.[(referenceMoment.getDay() + 6) % 7],
-  }));
-  // Only actually filter by it when the user gave a real time — a place confirmed closed at
-  // a time they explicitly asked about genuinely isn't a match, however close it is.
-  const openAtTarget = departureTime ? annotated.filter((p) => p.isOpenNow) : annotated;
-  const pruned = pruneByStraightLineDistance(origin, openAtTarget, maxRoutedCandidates, searchRadius);
+  // The travel time isn't known yet, so this first pass is deliberately loose: it only drops a
+  // place that is closed for the whole of the longest trip that could still qualify. The exact
+  // check, at the moment the user would actually arrive, happens after routing below. Only done
+  // when the user gave a real time — a place confirmed closed at a time they explicitly asked
+  // about genuinely isn't a match, however close it is.
+  const longestTripMinutes = intent.maxMinutes ?? 60;
+  const possiblyOpen = departureTime
+    ? places.filter((p) => isOpenDuring(p.openingPeriods ?? null, departureTime, new Date(departureTime.getTime() + longestTripMinutes * 60_000)))
+    : places;
+  const pruned = selectCandidatesForRouting(origin, possiblyOpen, { ...rankOptions, maxCandidates: maxRoutedCandidates, radiusMeters: searchRadius });
   const eligible = pruned.filter((c) => intent.modes.includes(chooseTravelMode(c.straightLineMeters)));
 
   const routed = await Promise.all(eligible.map((c) => routeToCandidate(origin, c, departureTime)));
   const successful = routed.filter((r): r is RoutedCandidate => r !== null);
 
+  // Opening hours are judged at departure + travel time, not at departure: a place that closes ten
+  // minutes after you leave isn't open for a twenty-minute trip. A query with no stated time still
+  // isn't filtered by it (the user didn't ask for "open"), only annotated — same reasoning as
+  // maxMinutes: an unstated constraint doesn't get enforced just because it has a convenient
+  // default value (see the "closest yogost" fix).
+  const hoursBase = departureTime ?? new Date();
+  const annotated = successful.map((c) => withArrivalHours(c, hoursBase));
+  const openOnArrival = departureTime ? annotated.filter((c) => c.isOpenOnArrival !== false) : annotated;
+
   return {
-    results: filterAndRankByDuration(successful, intent.maxMinutes),
+    results: filterAndRankByDuration(openOnArrival, intent.maxMinutes, DEFAULT_RESULT_LIMIT, rankOptions),
     origin,
     originLabel,
     usedReferenceLocation: reference !== null,

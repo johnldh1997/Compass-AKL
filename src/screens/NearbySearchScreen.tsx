@@ -87,6 +87,16 @@ function formatSubtitle(result: NearbySearchResult, t: ReturnType<typeof useTran
     : t('nearby.transitMinutes', { minutes: result.durationMinutes });
 }
 
+// What Places confirms about a place beyond travel time — price and the two details a search can ask
+// for. Only what's known is shown: a missing detail is "unknown", never "no".
+function formatDetails(result: NearbySearchResult, t: ReturnType<typeof useTranslation>): string[] {
+  const details: string[] = [];
+  if (result.priceLevel != null && result.priceLevel >= 1) details.push('$'.repeat(result.priceLevel));
+  if (result.servesVegetarianFood) details.push(t('nearby.vegetarian'));
+  if (result.outdoorSeating) details.push(t('nearby.outdoorSeating'));
+  return details;
+}
+
 // "Today"/"Tomorrow" read faster than a weekday name for the two cases that matter most;
 // anything further out falls back to the weekday, which is still unambiguous without a
 // full date — this is a confirmation chip, not a calendar.
@@ -275,7 +285,7 @@ export default function NearbySearchScreen({ navigation }: Props) {
     // explanation call still shows them, just without the written blurb.
     let explanation: string | undefined;
     try {
-      explanation = await withTimeout(explainResults(text, outcome.results, outcome.departureTime !== null));
+      explanation = await withTimeout(explainResults(text, outcome.results, outcome.departureTime !== null, intent.rankBy));
     } catch (err) {
       console.error('Nearby search: explanation failed', err);
     }
@@ -371,13 +381,20 @@ export default function NearbySearchScreen({ navigation }: Props) {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.resultSubtitle}>{formatSubtitle(result, t)}</Text>
-                  {result.isOpenNow != null && (
-                    <Text style={[styles.hoursText, result.isOpenNow ? styles.hoursOpenText : styles.hoursClosedText]}>
-                      {/* When a day/time was asked about, the status is for that moment — "now" would be wrong. */}
-                      {result.isOpenNow
-                        ? t(item.departureTime ? 'nearby.open' : 'nearby.openNow')
-                        : t(item.departureTime ? 'nearby.closed' : 'nearby.closedNow')}
+                  <Text style={styles.resultSubtitle}>{[formatSubtitle(result, t), ...formatDetails(result, t)].join(' · ')}</Text>
+                  {result.isOpenOnArrival != null && (
+                    <Text
+                      style={[
+                        styles.hoursText,
+                        !result.isOpenOnArrival ? styles.hoursClosedText : result.closesInMinutes != null ? styles.hoursClosingText : styles.hoursOpenText,
+                      ]}
+                    >
+                      {/* Judged at the moment the user would arrive (departure + travel time), not now. */}
+                      {!result.isOpenOnArrival
+                        ? t('nearby.closedOnArrival')
+                        : result.closesInMinutes != null
+                          ? t('nearby.closesAfterArrival', { count: result.closesInMinutes })
+                          : t('nearby.open')}
                       {result.todayHoursText ? ` · ${result.todayHoursText}` : ''}
                     </Text>
                   )}
@@ -509,6 +526,7 @@ function createStyles(colors: ThemeColors) {
     hoursText: { fontSize: 12, marginTop: 2, fontWeight: '600' },
     hoursOpenText: { color: colors.success },
     hoursClosedText: { color: colors.danger },
+    hoursClosingText: { color: colors.amber },
     resultSummary: { color: colors.textMuted, fontSize: 12, marginTop: 3, fontStyle: 'italic' },
     mapsLinkButton: {
       flexDirection: 'row',

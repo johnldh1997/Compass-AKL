@@ -7,6 +7,15 @@ import {
   filterAndRankByDuration,
   resolveTargetDateTime,
   isOpenAt,
+  isOpenDuring,
+  minutesUntilClosing,
+  withArrivalHours,
+  qualityScore,
+  requirementMatch,
+  priceLevelFromPlaces,
+  selectCandidatesForRouting,
+  type NearbyCandidate,
+  type RoutedCandidate,
   type TargetDay,
   type OpeningPeriod,
 } from './nearbyRanking.ts';
@@ -177,4 +186,193 @@ test('isOpenAt: an overnight period is closed well after it ends', () => {
   const periods: OpeningPeriod[] = [{ openDay: 5, openHour: 22, openMinute: 0, closeDay: 6, closeHour: 2, closeMinute: 0 }];
   const saturdayAtNoon = new Date(2026, 9, 3, 12, 0);
   assert.equal(isOpenAt(periods, saturdayAtNoon), false);
+});
+
+// --- Opening Hours At Arrival ---
+const TUESDAY_9_TO_5: OpeningPeriod[] = [{ openDay: 2, openHour: 9, openMinute: 0, closeDay: 2, closeHour: 17, closeMinute: 0 }];
+
+function routed(overrides: Partial<RoutedCandidate>): RoutedCandidate {
+  return { id: 'p', name: 'Place', lat: 0, lon: 0, straightLineMeters: 1000, durationMinutes: 20, mode: 'WALK', ...overrides };
+}
+
+test('minutesUntilClosing: counts down to the closing time', () => {
+  assert.equal(minutesUntilClosing(TUESDAY_9_TO_5, new Date(2026, 8, 29, 16, 30)), 30);
+});
+
+test('minutesUntilClosing: null when it is closed, or there is no hours data', () => {
+  assert.equal(minutesUntilClosing(TUESDAY_9_TO_5, new Date(2026, 8, 29, 18, 0)), null);
+  assert.equal(minutesUntilClosing(null, new Date(2026, 8, 29, 12, 0)), null);
+});
+
+test('minutesUntilClosing: an overnight period counts across midnight', () => {
+  const periods: OpeningPeriod[] = [{ openDay: 5, openHour: 22, openMinute: 0, closeDay: 6, closeHour: 2, closeMinute: 0 }];
+  assert.equal(minutesUntilClosing(periods, new Date(2026, 9, 3, 1, 15)), 45); // Saturday 01:15, closes 02:00
+});
+
+test('minutesUntilClosing: back-to-back periods (a split shift) are one stretch of being open', () => {
+  const periods: OpeningPeriod[] = [
+    { openDay: 2, openHour: 11, openMinute: 0, closeDay: 2, closeHour: 14, closeMinute: 0 },
+    { openDay: 2, openHour: 14, openMinute: 0, closeDay: 2, closeHour: 22, closeMinute: 0 },
+  ];
+  assert.equal(minutesUntilClosing(periods, new Date(2026, 8, 29, 13, 30)), 8 * 60 + 30);
+});
+
+test('minutesUntilClosing: a gap between periods is still a closing time', () => {
+  const periods: OpeningPeriod[] = [
+    { openDay: 2, openHour: 11, openMinute: 0, closeDay: 2, closeHour: 14, closeMinute: 0 },
+    { openDay: 2, openHour: 17, openMinute: 0, closeDay: 2, closeHour: 22, closeMinute: 0 },
+  ];
+  assert.equal(minutesUntilClosing(periods, new Date(2026, 8, 29, 13, 30)), 30);
+});
+
+test('minutesUntilClosing: an always-open place never reads as closing soon', () => {
+  const periods: OpeningPeriod[] = [{ openDay: 0, openHour: 0, openMinute: 0, closeDay: 0, closeHour: 0, closeMinute: 0 }];
+  const remaining = minutesUntilClosing(periods, new Date(2026, 8, 29, 12, 0));
+  assert.ok(remaining !== null && remaining > 24 * 60, `expected well over a day, got ${remaining}`);
+});
+
+test('isOpenDuring: a place that opens before the end of the window counts', () => {
+  const from = new Date(2026, 8, 29, 8, 50);
+  assert.equal(isOpenDuring(TUESDAY_9_TO_5, from, new Date(2026, 8, 29, 9, 20)), true);
+});
+
+test('isOpenDuring: closed for the whole window is out; no data is never out', () => {
+  assert.equal(isOpenDuring(TUESDAY_9_TO_5, new Date(2026, 8, 29, 18, 0), new Date(2026, 8, 29, 19, 0)), false);
+  assert.equal(isOpenDuring(null, new Date(2026, 8, 29, 18, 0), new Date(2026, 8, 29, 19, 0)), true);
+});
+
+test('withArrivalHours: open when you leave but closed by the time you arrive is closed', () => {
+  // Closes at 17:10; leave at 17:00 with a 20 minute walk -> arrive 17:20, ten minutes too late.
+  const periods: OpeningPeriod[] = [{ openDay: 2, openHour: 9, openMinute: 0, closeDay: 2, closeHour: 17, closeMinute: 10 }];
+  const departure = new Date(2026, 8, 29, 17, 0);
+  assert.equal(isOpenAt(periods, departure), true);
+  const result = withArrivalHours(routed({ openingPeriods: periods, durationMinutes: 20 }), departure);
+  assert.equal(result.isOpenOnArrival, false);
+  assert.equal(result.closesInMinutes, undefined);
+});
+
+test('withArrivalHours: open on arrival but closing soon says how long you would have', () => {
+  const periods: OpeningPeriod[] = [{ openDay: 2, openHour: 9, openMinute: 0, closeDay: 2, closeHour: 17, closeMinute: 40 }];
+  const result = withArrivalHours(routed({ openingPeriods: periods, durationMinutes: 20 }), new Date(2026, 8, 29, 17, 0));
+  assert.equal(result.isOpenOnArrival, true);
+  assert.equal(result.closesInMinutes, 20);
+});
+
+test('withArrivalHours: plenty of time left is just open, with no closing warning', () => {
+  const result = withArrivalHours(routed({ openingPeriods: TUESDAY_9_TO_5, durationMinutes: 20 }), new Date(2026, 8, 29, 12, 0));
+  assert.equal(result.isOpenOnArrival, true);
+  assert.equal(result.closesInMinutes, undefined);
+});
+
+test('withArrivalHours: a place Google has no hours for gets no open/closed claim at all', () => {
+  const result = withArrivalHours(routed({ openingPeriods: null }), new Date(2026, 8, 29, 12, 0));
+  assert.equal(result.isOpenOnArrival, undefined);
+  assert.equal(result.closesInMinutes, undefined);
+});
+
+test('withArrivalHours: the hours line is for the day you arrive, even past midnight', () => {
+  const weekdayDescriptions = ['Monday: a', 'Tuesday: b', 'Wednesday: c', 'Thursday: d', 'Friday: e', 'Saturday: f', 'Sunday: g'];
+  // Leave Tuesday 23:50, a 30 minute trip lands on Wednesday.
+  const result = withArrivalHours(routed({ weekdayDescriptions, durationMinutes: 30 }), new Date(2026, 8, 29, 23, 50));
+  assert.equal(result.todayHoursText, 'Wednesday: c');
+});
+
+// --- Best Rating & Requirements ---
+// ~0.0027 degrees of latitude is ~300 m, so these sit at known distances from USER.
+function place(id: string, metersNorth: number, extra: Partial<NearbyCandidate> = {}): NearbyCandidate {
+  return { id, name: id, lat: USER.lat + metersNorth / 111_000, lon: USER.lon, ...extra };
+}
+
+test('qualityScore: a thin 5.0 does not beat a well-reviewed 4.6', () => {
+  assert.ok(qualityScore(4.6, 800) > qualityScore(5.0, 3));
+});
+
+test('qualityScore: more reviews at the same rating scores higher', () => {
+  assert.ok(qualityScore(4.5, 400) > qualityScore(4.5, 15));
+});
+
+test('selectCandidatesForRouting: "nearest" takes the closest place', () => {
+  const candidates = [place('close', 100, { rating: 3.9, userRatingCount: 200 }), place('great', 900, { rating: 4.8, userRatingCount: 600 })];
+  const picked = selectCandidatesForRouting(USER, candidates, { rankBy: 'nearest', maxCandidates: 1 });
+  assert.deepEqual(picked.map((c) => c.id), ['close']);
+});
+
+test('selectCandidatesForRouting: "best" picks a higher-rated place than the closest one', () => {
+  const candidates = [place('close', 100, { rating: 3.9, userRatingCount: 200 }), place('great', 900, { rating: 4.8, userRatingCount: 600 })];
+  const picked = selectCandidatesForRouting(USER, candidates, { rankBy: 'best', maxCandidates: 1 });
+  assert.deepEqual(picked.map((c) => c.id), ['great']);
+});
+
+test('selectCandidatesForRouting: "best" ignores thinly reviewed places while better evidence exists', () => {
+  const candidates = [place('thin', 100, { rating: 5.0, userRatingCount: 3 }), place('solid', 500, { rating: 4.4, userRatingCount: 300 })];
+  const picked = selectCandidatesForRouting(USER, candidates, { rankBy: 'best', maxCandidates: 2 });
+  assert.deepEqual(picked.map((c) => c.id), ['solid']);
+});
+
+test('selectCandidatesForRouting: "best" still returns something when nothing has enough reviews', () => {
+  const candidates = [place('a', 100, { rating: 4.5, userRatingCount: 4 }), place('b', 300, { rating: 4.9, userRatingCount: 2 })];
+  const picked = selectCandidatesForRouting(USER, candidates, { rankBy: 'best', maxCandidates: 2 });
+  assert.equal(picked.length, 2);
+});
+
+test('selectCandidatesForRouting: still honours the search radius', () => {
+  const candidates = [place('near', 500, { rating: 4.0, userRatingCount: 50 }), place('far', 9000, { rating: 5.0, userRatingCount: 900 })];
+  const picked = selectCandidatesForRouting(USER, candidates, { rankBy: 'best', radiusMeters: 6000 });
+  assert.deepEqual(picked.map((c) => c.id), ['near']);
+});
+
+test('requirementMatch: nothing asked for is always a match', () => {
+  assert.equal(requirementMatch(place('a', 100), {}), 'yes');
+});
+
+test('requirementMatch: cheap is confirmed, contradicted or unknown by price level', () => {
+  assert.equal(requirementMatch(place('a', 100, { priceLevel: 1 }), { wantsCheap: true }), 'yes');
+  assert.equal(requirementMatch(place('a', 100, { priceLevel: 3 }), { wantsCheap: true }), 'no');
+  assert.equal(requirementMatch(place('a', 100), { wantsCheap: true }), 'unknown');
+});
+
+test('requirementMatch: one contradicted ask is a no, however many others are confirmed', () => {
+  const p = place('a', 100, { servesVegetarianFood: true, outdoorSeating: false });
+  assert.equal(requirementMatch(p, { wantsVegetarian: true, wantsOutdoorSeating: true }), 'no');
+});
+
+test('requirementMatch: a confirmed ask plus an unknown one is unknown, not yes', () => {
+  const p = place('a', 100, { servesVegetarianFood: true });
+  assert.equal(requirementMatch(p, { wantsVegetarian: true, wantsOutdoorSeating: true }), 'unknown');
+});
+
+test('selectCandidatesForRouting: drops places Places says do not match, and puts confirmed ones first', () => {
+  const candidates = [
+    place('unknown-close', 100),
+    place('not-veg', 150, { servesVegetarianFood: false }),
+    place('veg-further', 700, { servesVegetarianFood: true }),
+  ];
+  const picked = selectCandidatesForRouting(USER, candidates, { requirements: { wantsVegetarian: true } });
+  assert.deepEqual(picked.map((c) => c.id), ['veg-further', 'unknown-close']);
+});
+
+test('filterAndRankByDuration: "best" orders by quality within the time budget', () => {
+  const routed: RoutedCandidate[] = [
+    { ...place('quick', 100, { rating: 3.8, userRatingCount: 300 }), straightLineMeters: 100, durationMinutes: 3, mode: 'WALK' },
+    { ...place('great', 600, { rating: 4.8, userRatingCount: 500 }), straightLineMeters: 600, durationMinutes: 9, mode: 'WALK' },
+    { ...place('too-far', 900, { rating: 5.0, userRatingCount: 900 }), straightLineMeters: 900, durationMinutes: 25, mode: 'WALK' },
+  ];
+  const ranked = filterAndRankByDuration(routed, 15, 6, { rankBy: 'best' });
+  assert.deepEqual(ranked.map((c) => c.id), ['great', 'quick']);
+});
+
+test('filterAndRankByDuration: confirmed matches come ahead of unconfirmed ones, even if further', () => {
+  const routed: RoutedCandidate[] = [
+    { ...place('unknown', 100), straightLineMeters: 100, durationMinutes: 3, mode: 'WALK' },
+    { ...place('confirmed', 600, { outdoorSeating: true }), straightLineMeters: 600, durationMinutes: 9, mode: 'WALK' },
+  ];
+  const ranked = filterAndRankByDuration(routed, null, 6, { requirements: { wantsOutdoorSeating: true } });
+  assert.deepEqual(ranked.map((c) => c.id), ['confirmed', 'unknown']);
+});
+
+test('priceLevelFromPlaces: maps the Places enum to 0-4, and leaves unknowns unknown', () => {
+  assert.equal(priceLevelFromPlaces('PRICE_LEVEL_INEXPENSIVE'), 1);
+  assert.equal(priceLevelFromPlaces('PRICE_LEVEL_VERY_EXPENSIVE'), 4);
+  assert.equal(priceLevelFromPlaces('PRICE_LEVEL_UNSPECIFIED'), undefined);
+  assert.equal(priceLevelFromPlaces(undefined), undefined);
 });
