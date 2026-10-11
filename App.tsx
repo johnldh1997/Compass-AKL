@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { createNavigationContainerRef, NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFonts } from 'expo-font';
@@ -50,14 +50,18 @@ export default function App() {
   const systemScheme = useColorScheme();
   const loadingColors = systemScheme === 'dark' ? darkColors : lightColors;
 
-  // Map markers (stops/vehicles) render a MaterialIcons glyph as their custom marker
+  // Map markers (stops/vehicles) render a MaterialIcons glyph (or, for a zoomed-out bus stop,
+  // a MaterialCommunityIcons bus-stop sign) as their custom marker
   // view. That icon component renders blank on its very first frame until its font
   // finishes an async load — react-native-maps on Android snapshots whatever a custom
   // marker looked like at that first frame, so a marker that mounts before the font is
   // ready gets stuck showing the SDK's default red pin instead of the icon badge (only
   // fixed by a later remount, e.g. from panning/zooming). Loading the font up front
   // means it's already ready before any marker ever mounts.
-  const [fontsLoaded] = useFonts(MaterialIcons.font);
+  // A font that fails to load must not leave the app stuck on the loading screen forever — a
+  // missing glyph is far better than an app that never opens — so an error counts as "done".
+  const [fontsReady, fontError] = useFonts({ ...MaterialIcons.font, ...MaterialCommunityIcons.font });
+  const fontsLoaded = fontsReady || !!fontError;
 
   // By default, expo-updates only downloads a newer OTA update in the background on
   // launch — it doesn't apply to the app instance that's currently running, only on the
