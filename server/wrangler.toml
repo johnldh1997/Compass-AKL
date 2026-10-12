@@ -5,3 +5,29 @@ compatibility_date = "2026-09-01"
 # ANTHROPIC_API_KEY is a secret, never a var here — set it with:
 #   npx wrangler secret put ANTHROPIC_API_KEY
 # For local dev, put it in .dev.vars (gitignored) instead; see .dev.vars.example.
+
+# --- Abuse protection (see src/limits.ts) ---
+# Cloudflare Rate Limiting bindings; period may only be 10 or 60 seconds, and counters are per
+# Cloudflare location. namespace_id just has to be a unique positive integer within the account.
+# A request carrying an X-Install-Id is counted against that install (and, more loosely, its IP);
+# one without is counted against its IP alone, much more tightly.
+[[ratelimits]]
+name = "INSTALL_LIMITER"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 16
+  period = 60
+
+[[ratelimits]]
+name = "IP_LIMITER"
+namespace_id = "1002"
+  [ratelimits.simple]
+  limit = 50
+  period = 60
+
+[[ratelimits]]
+name = "ANON_LIMITER"
+namespace_id = "1003"
+  [ratelimits.simple]
+  limit = 8
+  period = 60

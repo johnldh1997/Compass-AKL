@@ -117,7 +117,7 @@
   {
     "id": "en-no-time-given",
     "text": "pho",
-    "expect": {"category": ["pho"], "maxMinutes": null, "targetDay": null, "hour": null, "minute": null, "confident": true}
+    "expect": {"category": ["pho", "vietnam"], "maxMinutes": null, "targetDay": null, "hour": null, "minute": null, "confident": true}
   },
   {
     "id": "en-everything",
@@ -147,36 +147,42 @@
   {
     "id": "refine-walking-only",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "actually walking only",
     "expect": {"category": ["ramen"], "modes": ["WALK"], "confident": true}
   },
   {
     "id": "refine-new-time",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "make it tomorrow at 6pm",
     "expect": {"category": ["ramen"], "targetDay": "tomorrow", "hour": 18, "minute": 0}
   },
   {
     "id": "refine-time-limit",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "within 10 minutes",
     "expect": {"category": ["ramen"], "maxMinutes": 10}
   },
   {
     "id": "refine-add-place",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "near Britomart instead",
     "expect": {"category": ["ramen"], "referenceLocationText": ["britomart"]}
   },
   {
     "id": "refine-keeps-time",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 17, "minute": 0, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "actually walking only",
     "expect": {"category": ["ramen"], "modes": ["WALK"], "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 17, "minute": 0}
   },
   {
     "id": "refine-fresh-request",
     "previous": {"category": "ramen", "maxMinutes": 10, "modes": ["WALK"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 17, "minute": 0, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "coffee near the Sky Tower",
     "expect": {"category": ["coffee", "cafe"], "maxMinutes": null, "referenceLocationText": ["sky tower"], "targetDay": null, "hour": null}
   },
@@ -255,6 +261,7 @@
   {
     "id": "ko-refine-walking-only",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "걸어서 갈 수 있는 곳만",
     "expect": {"category": ["ramen", "라멘"], "modes": ["WALK"]}
   },
@@ -327,18 +334,21 @@
   {
     "id": "refine-best",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "the best rated one instead",
     "expect": {"category": ["ramen"], "rankBy": "best"}
   },
   {
     "id": "refine-cheap",
     "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "only cheap ones",
     "expect": {"category": ["ramen"], "wantsCheap": true}
   },
   {
     "id": "refine-keeps-preferences",
     "previous": {"category": "cafe", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "best", "wantsCheap": false, "wantsVegetarian": true, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Mojo Britomart", "minutes": 2, "mode": "WALK", "rating": 4.4, "ratingCount": 900, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Gemmayze Street", "minutes": 4, "mode": "WALK", "rating": 4.5, "ratingCount": 400, "hours": "open", "priceLevel": 2, "vegetarian": true}, {"name": "Cafe Hanoi", "minutes": 6, "mode": "WALK", "rating": 4.2, "ratingCount": 150, "hours": "open", "priceLevel": 1}],
     "text": "actually walking only",
     "expect": {"category": ["cafe", "coffee"], "modes": ["WALK"], "rankBy": "best", "wantsVegetarian": true}
   },
@@ -366,5 +376,456 @@
     "id": "ko-outdoor",
     "text": "야외 좌석 있는 카페",
     "expect": {"category": ["cafe", "coffee", "카페", "커피"], "wantsOutdoorSeating": true}
+  },
+  {
+    "id": "example-best-within",
+    "text": "Best coffee within 10 minutes",
+    "expect": {"category": ["coffee", "cafe"], "categoryAvoids": ["best"], "rankBy": "best", "maxMinutes": 10}
+  },
+  {
+    "id": "example-cheap-veg-lunch",
+    "text": "Cheap vegetarian lunch",
+    "expect": {"wantsCheap": true, "wantsVegetarian": true, "confident": true}
+  },
+  {
+    "id": "ko-example-ramen",
+    "text": "근처 라멘집",
+    "expect": {"category": ["ramen", "라멘"], "confident": true}
+  },
+  {
+    "id": "ko-example-best-within",
+    "text": "10분 이내 최고의 커피숍",
+    "expect": {"category": ["coffee", "cafe", "커피", "카페"], "rankBy": "best", "maxMinutes": 10}
+  },
+  {
+    "id": "en-open-now",
+    "text": "ramen open now",
+    "expect": {"category": ["ramen"], "categoryAvoids": ["open"], "targetDay": "today", "hour": null, "minute": null}
+  },
+  {
+    "id": "chip-walking",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Walking only",
+    "expect": {"category": ["ramen"], "modes": ["WALK"], "confident": true}
+  },
+  {
+    "id": "chip-open-now",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Open now",
+    "expect": {"category": ["ramen"], "targetDay": "today", "hour": null, "minute": null, "confident": true}
+  },
+  {
+    "id": "chip-best",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Best rated",
+    "expect": {"category": ["ramen"], "rankBy": "best", "confident": true}
+  },
+  {
+    "id": "chip-closest",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "best", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Closest first",
+    "expect": {"category": ["ramen"], "rankBy": "nearest", "confident": true}
+  },
+  {
+    "id": "chip-within-10",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Within 10 minutes",
+    "expect": {"category": ["ramen"], "maxMinutes": 10, "confident": true}
+  },
+  {
+    "id": "chip-cheap",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Cheap only",
+    "expect": {"category": ["ramen"], "wantsCheap": true, "confident": true}
+  },
+  {
+    "id": "chip-vegetarian",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Vegetarian options",
+    "expect": {"category": ["ramen"], "wantsVegetarian": true, "confident": true}
+  },
+  {
+    "id": "chip-outdoor",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Outdoor seating",
+    "expect": {"category": ["ramen"], "wantsOutdoorSeating": true, "confident": true}
+  },
+  {
+    "id": "chip-keeps-place-and-time",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": "Britomart", "targetDay": "tomorrow", "hour": 17, "minute": 0, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Walking only",
+    "expect": {"category": ["ramen"], "modes": ["WALK"], "referenceLocationText": ["britomart"], "targetDay": "tomorrow", "hour": 17}
+  },
+  {
+    "id": "ko-chip-walking",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "도보만",
+    "expect": {"category": ["ramen", "라멘"], "modes": ["WALK"], "confident": true}
+  },
+  {
+    "id": "ko-chip-open-now",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "지금 영업 중인 곳",
+    "expect": {"category": ["ramen", "라멘"], "targetDay": "today", "hour": null, "minute": null, "confident": true}
+  },
+  {
+    "id": "ko-chip-best",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "평점 높은 순",
+    "expect": {"category": ["ramen", "라멘"], "rankBy": "best", "confident": true}
+  },
+  {
+    "id": "ko-chip-closest",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "best", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "가까운 순",
+    "expect": {"category": ["ramen", "라멘"], "rankBy": "nearest", "confident": true}
+  },
+  {
+    "id": "ko-chip-within-10",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "10분 이내",
+    "expect": {"category": ["ramen", "라멘"], "maxMinutes": 10, "confident": true}
+  },
+  {
+    "id": "ko-chip-cheap",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "저렴한 곳만",
+    "expect": {"category": ["ramen", "라멘"], "wantsCheap": true, "confident": true}
+  },
+  {
+    "id": "ko-chip-vegetarian",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "채식 메뉴 있는 곳",
+    "expect": {"category": ["ramen", "라멘"], "wantsVegetarian": true, "confident": true}
+  },
+  {
+    "id": "ko-chip-outdoor",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "야외 좌석 있는 곳",
+    "expect": {"category": ["ramen", "라멘"], "wantsOutdoorSeating": true, "confident": true}
+  },
+  {
+    "id": "q-best-rated",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Which one is best rated?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "q-cheapest",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "which is the cheapest?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "q-first-veg",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Is the first one vegetarian?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "q-how-far",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "How far is Oodles?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "q-which-open",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Which of these are open now?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "q-close-time",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "What time does the second one close?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "q-compare",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Is Go Ramen or Oodles better?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "q-why-ranked",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Why are these in this order?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "ko-q-best",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "평점이 가장 높은 곳이 어디야?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "ko-q-close",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "두 번째 곳은 몇 시에 닫아?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "ko-q-cheap",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "제일 저렴한 곳은 어디예요?",
+    "expect": {"messageKind": "question"}
+  },
+  {
+    "id": "a-second",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Take me to the second one",
+    "expect": {"messageKind": "action", "actionType": "directions", "actionTargetIndex": 2}
+  },
+  {
+    "id": "a-name",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Directions to Oodles",
+    "expect": {"messageKind": "action", "actionType": "directions", "actionTargetIndex": 6}
+  },
+  {
+    "id": "a-closest",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Navigate to the closest one",
+    "expect": {"messageKind": "action", "actionType": "directions", "actionTargetIndex": 1}
+  },
+  {
+    "id": "a-best-rated",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "take me to the best rated one",
+    "expect": {"messageKind": "action", "actionType": "directions", "actionTargetIndex": 6}
+  },
+  {
+    "id": "a-map-first",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Show the first one on the map",
+    "expect": {"messageKind": "action", "actionType": "maps", "actionTargetIndex": 1}
+  },
+  {
+    "id": "a-open-maps-name",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Open Go Ramen in Google Maps",
+    "expect": {"messageKind": "action", "actionType": "maps", "actionTargetIndex": 5}
+  },
+  {
+    "id": "a-ambiguous",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Take me there",
+    "expect": {"messageKind": "action", "actionTargetIndex": 0, "confident": false, "asksQuestion": true}
+  },
+  {
+    "id": "ko-a-second",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "두 번째 곳으로 길 안내해줘",
+    "expect": {"messageKind": "action", "actionType": "directions", "actionTargetIndex": 2}
+  },
+  {
+    "id": "ko-a-name",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "Ten-hana로 안내해줘",
+    "expect": {"messageKind": "action", "actionType": "directions", "actionTargetIndex": 1}
+  },
+  {
+    "id": "ko-a-map",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "첫 번째 곳 지도로 보여줘",
+    "expect": {"messageKind": "action", "actionType": "maps", "actionTargetIndex": 1}
+  },
+  {
+    "id": "s-new-category",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "sushi near me",
+    "expect": {"messageKind": "search", "category": ["sushi"], "confident": true}
+  },
+  {
+    "id": "s-what-about",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "What about sushi instead?",
+    "expect": {"messageKind": "search", "category": ["sushi"], "confident": true}
+  },
+  {
+    "id": "s-cheaper",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "any cheaper ones?",
+    "expect": {"messageKind": "search", "category": ["ramen"], "wantsCheap": true}
+  },
+  {
+    "id": "s-other-place",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "ramen near Britomart instead",
+    "expect": {"messageKind": "search", "category": ["ramen"], "referenceLocationText": ["britomart"]}
+  },
+  {
+    "id": "ko-s-new-category",
+    "previous": {"category": "ramen", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "초밥집 찾아줘",
+    "expect": {"messageKind": "search", "category": ["sushi", "초밥", "스시"], "confident": true}
+  },
+  {
+    "id": "q-no-results",
+    "text": "Which one is best rated?",
+    "expect": {"messageKind": "search", "confident": false, "asksQuestion": true}
+  },
+  {
+    "id": "sp-work",
+    "saved": ["Work", "Gym"],
+    "text": "coffee near work",
+    "expect": {"category": ["coffee", "cafe"], "savedPlaceLabel": "Work", "referenceLocationText": null, "confident": true}
+  },
+  {
+    "id": "sp-gym",
+    "saved": ["Work", "Gym"],
+    "text": "healthy lunch near my gym",
+    "expect": {"savedPlaceLabel": "Gym", "referenceLocationText": null, "confident": true}
+  },
+  {
+    "id": "sp-with-time",
+    "saved": ["Work"],
+    "text": "ramen near work tomorrow at 6pm",
+    "expect": {"category": ["ramen"], "savedPlaceLabel": "Work", "targetDay": "tomorrow", "hour": 18}
+  },
+  {
+    "id": "sp-possessive",
+    "saved": ["Work", "Mum's House"],
+    "text": "cake near mum's place",
+    "expect": {"category": ["cake", "bakery"], "savedPlaceLabel": "Mum's House", "confident": true}
+  },
+  {
+    "id": "sp-synonym",
+    "saved": ["Work"],
+    "text": "ramen near the office",
+    "expect": {"category": ["ramen"], "savedPlaceLabel": "Work", "confident": true}
+  },
+  {
+    "id": "sp-missing",
+    "saved": ["Gym"],
+    "text": "coffee near work",
+    "expect": {"savedPlaceLabel": "", "confident": false, "asksQuestion": true}
+  },
+  {
+    "id": "sp-none-saved",
+    "saved": [],
+    "text": "coffee near work",
+    "expect": {"savedPlaceLabel": "", "confident": false, "asksQuestion": true}
+  },
+  {
+    "id": "sp-public-place",
+    "saved": ["Work", "Gym"],
+    "text": "coffee near Britomart",
+    "expect": {"savedPlaceLabel": "", "referenceLocationText": ["britomart"], "confident": true}
+  },
+  {
+    "id": "sp-airport",
+    "saved": ["Work", "Gym"],
+    "text": "burger near the airport",
+    "expect": {"savedPlaceLabel": "", "referenceLocationText": ["airport"], "confident": true}
+  },
+  {
+    "id": "sp-home-stays-home",
+    "saved": ["Work"],
+    "text": "cafe near home",
+    "expect": {"useSavedHome": true, "savedPlaceLabel": ""}
+  },
+  {
+    "id": "ko-sp-work",
+    "saved": ["Work", "Gym"],
+    "text": "회사 근처 카페",
+    "expect": {"category": ["cafe", "coffee", "카페", "커피"], "savedPlaceLabel": "Work", "referenceLocationText": null, "confident": true}
+  },
+  {
+    "id": "ko-sp-label",
+    "saved": ["회사", "헬스장"],
+    "text": "회사 근처 라멘",
+    "expect": {"category": ["ramen", "라멘"], "savedPlaceLabel": "회사", "confident": true}
+  },
+  {
+    "id": "ko-sp-missing",
+    "saved": ["Gym"],
+    "text": "회사 근처 카페",
+    "expect": {"savedPlaceLabel": "", "confident": false, "asksQuestion": true}
+  },
+  {
+    "id": "j-dinner-near-stop",
+    "text": "dinner near my stop",
+    "expect": {"useJourneyDestination": true, "referenceLocationText": null, "hour": null, "minute": null, "targetDay": null, "confident": true}
+  },
+  {
+    "id": "j-where-get-off",
+    "text": "ramen near where I get off",
+    "expect": {"category": ["ramen"], "useJourneyDestination": true, "referenceLocationText": null, "hour": null}
+  },
+  {
+    "id": "j-open-when-arrive",
+    "text": "cafe open when I arrive",
+    "expect": {"category": ["cafe", "coffee"], "useJourneyDestination": true, "hour": null, "targetDay": null}
+  },
+  {
+    "id": "j-destination",
+    "text": "coffee at my destination",
+    "expect": {"category": ["coffee", "cafe"], "useJourneyDestination": true}
+  },
+  {
+    "id": "j-explicit-time",
+    "text": "dinner near my stop at 8pm",
+    "expect": {"useJourneyDestination": true, "hour": 20, "minute": 0}
+  },
+  {
+    "id": "ko-j-stop",
+    "text": "내릴 정류장 근처 카페",
+    "expect": {"category": ["cafe", "coffee", "카페", "커피"], "useJourneyDestination": true, "referenceLocationText": null}
+  },
+  {
+    "id": "j-not-a-journey",
+    "text": "coffee near Britomart",
+    "expect": {"useJourneyDestination": false, "referenceLocationText": ["britomart"]}
+  },
+  {
+    "id": "refine-answers-question-with-results-shown",
+    "previous": {"category": "", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": false},
+    "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
+    "text": "sushi",
+    "expect": {"messageKind": "search", "category": ["sushi"], "confident": true, "asksQuestion": false}
   }
 ]

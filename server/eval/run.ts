@@ -13,7 +13,7 @@
 // Needs ANTHROPIC_API_KEY (loaded from .dev.vars by the npm script). Each case is one real API call.
 import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync } from 'node:fs';
-import { PARSE_MODEL, PreviousIntentSchema, parseNearbyIntent, type NearbyQuery, type PreviousIntent } from '../src/parse';
+import { PARSE_MODEL, PreviousIntentSchema, parseNearbyIntent, type NearbyQuery, type PreviousIntent, type ShownResult } from '../src/parse';
 
 // --- Case Format ---
 // Only the fields listed under `expect` are checked, so a case can pin down just what it is about.
@@ -23,6 +23,9 @@ import { PARSE_MODEL, PreviousIntentSchema, parseNearbyIntent, type NearbyQuery,
 //   maxMinutes: an exact number, null, or { min, max } for "some number in this range"
 //   referenceLocationText: null, or substrings like category
 //   asksQuestion: whether a clarifying question was written
+//   savedPlaceLabel: the saved place the message means ("" for none), compared ignoring case
+//   shown / saved (on the case, not in expect): the results on screen and the saved place names the app
+//   would send along. A case with neither is a fresh chat with nothing saved.
 interface Expect {
   category?: string[];
   categoryAvoids?: string[];
@@ -37,6 +40,11 @@ interface Expect {
   wantsCheap?: boolean;
   wantsVegetarian?: boolean;
   wantsOutdoorSeating?: boolean;
+  messageKind?: string;
+  actionType?: string;
+  actionTargetIndex?: number;
+  savedPlaceLabel?: string;
+  useJourneyDestination?: boolean;
   confident?: boolean;
   asksQuestion?: boolean;
 }
@@ -44,6 +52,8 @@ interface Case {
   id: string;
   text: string;
   previous?: PreviousIntent;
+  shown?: ShownResult[];
+  saved?: string[];
   expect: Expect;
 }
 
@@ -80,8 +90,24 @@ function check(got: NearbyQuery, expect: Expect): string[] {
     const ok = want === null ? place === null : place !== null && want.some((s) => place.includes(s.toLowerCase()));
     if (!ok) fail('referenceLocationText', want === null ? null : `one of ${show(want)}`, got.referenceLocationText);
   }
-  for (const field of ['targetDay', 'hour', 'minute', 'rankBy', 'wantsCheap', 'wantsVegetarian', 'wantsOutdoorSeating', 'confident'] as const) {
+  for (const field of [
+    'targetDay',
+    'hour',
+    'minute',
+    'rankBy',
+    'wantsCheap',
+    'wantsVegetarian',
+    'wantsOutdoorSeating',
+    'messageKind',
+    'actionType',
+    'actionTargetIndex',
+    'useJourneyDestination',
+    'confident',
+  ] as const) {
     if (expect[field] !== undefined && got[field] !== expect[field]) fail(field, expect[field], got[field]);
+  }
+  if (expect.savedPlaceLabel !== undefined && got.savedPlaceLabel.trim().toLowerCase() !== expect.savedPlaceLabel.toLowerCase()) {
+    fail('savedPlaceLabel', expect.savedPlaceLabel, got.savedPlaceLabel);
   }
   if (expect.asksQuestion !== undefined) {
     const asked = got.clarifyingQuestion !== null && got.clarifyingQuestion.trim() !== '';
@@ -114,7 +140,13 @@ async function runCase(client: Anthropic, model: string, c: Case): Promise<Outco
   const started = Date.now();
   try {
     const previous = c.previous ? PreviousIntentSchema.parse(c.previous) : null;
-    const { parsed, usage } = await parseNearbyIntent(client, c.text, previous, model);
+    // Mirrors the app: it always says what's saved (possibly nothing) and only sends results once there are some.
+    const { parsed, usage } = await parseNearbyIntent(
+      client,
+      c.text,
+      { previousIntent: previous, shownResults: c.shown ?? [], savedPlaces: c.saved ?? [] },
+      model
+    );
     return {
       id: c.id,
       failures: parsed ? check(parsed, c.expect) : ['no structured result came back'],

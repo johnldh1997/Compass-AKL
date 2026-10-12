@@ -1,26 +1,35 @@
 # Nearby Search Query Proxy
 
-A two-endpoint Cloudflare Worker behind the app's "Find Nearby" chat feature:
+A three-endpoint Cloudflare Worker behind the app's "Find Nearby" chat feature:
 
-- `POST /parse-nearby` — turns free text ("European food near Britomart tomorrow at 5pm", in
-  English or Korean) into structured search intent: category, a stated time budget, travel
-  modes, whether it means the app's saved home address, a named reference location, a target
-  day/hour/minute, whether they want the closest or the best rated, whether they asked for cheap,
-  vegetarian or outdoor seating, and — when the request is too vague to act on — a clarifying question to ask
-  back. Accepts an optional `previousIntent` so a short follow-up ("actually walking only") is
-  understood as a refinement of the last turn rather than its own incomplete request.
+- `POST /parse-nearby` — reads a chat message ("European food near Britomart tomorrow at 5pm", in
+  English or Korean) and says what it is: a **search**, a **question** about the results already on
+  screen, or an **action** on one of them ("take me to the second one"). For a search it returns
+  structured intent: category, a stated time budget, travel modes, whether it means the app's saved
+  home address, a saved place by name ("near work"), where the user's planned trip ends ("near my
+  stop"), a named reference location, a target day/hour/minute, closest or best rated, cheap /
+  vegetarian / outdoor-seating asks, and — when the request is too vague to act on — a clarifying
+  question to ask back. Besides `text` it accepts three optional pieces of context, each validated
+  and dropped if malformed: `previousIntent` (so "actually walking only" reads as a refinement),
+  `shownResults` (a compact numbered list, so an action can point at "the second one"; the model's
+  number is a claim the app checks) and `savedPlaces` (names the user has given places).
 - `POST /explain-results` — takes the client's own already-computed real results (places, real
   travel times, ratings, hours at the moment of arrival, price and menu details) and writes a short
   reply in the user's language. Never invents a place, distance, or detail that isn't in the list
   it's given. Runs on Opus 5.5 because the smaller models answered Korean questions in English;
   Opus always thinks before answering, so it gets a generous `max_tokens` (at 300 the reply came
   back empty or cut off).
+- `POST /answer-question` — the same, for a follow-up about results already on screen ("which is
+  best rated?", "what time does the second one close?"): the numbered results plus the last few chat
+  turns in, a one-to-three sentence answer out, from that data only. A detail that isn't listed is
+  "not known here", never a guess.
 
-Neither endpoint ever picks a place, a route, or a travel time itself, and neither computes an
-actual date — those come from real Google Places/Routes data and pure date-math, both handled
-client-side in `../src/services/nearbySearch.ts` and `../src/services/nearbyRanking.ts`. See the
-Zod schemas and system prompts in `src/parse.ts` (parsing) and `src/index.ts` (explaining) for the
-exact contract.
+No endpoint ever picks a place, a route, or a travel time itself, and none computes an actual date
+— those come from real Google Places/Routes data and pure date-math, both handled client-side in
+`../src/services/nearbySearch.ts`, `nearbyRanking.ts` and `nearbyConversation.ts`. Code layout:
+`src/parse.ts` (the message-reading prompt and schema), `src/explain.ts` (explain + answer),
+`src/limits.ts` (abuse protection), `src/http.ts` (shared helpers), `src/index.ts` (routing). See
+the Zod schemas and system prompts there for the exact contract.
 
 ## Why this exists as a separate service
 
@@ -54,8 +63,9 @@ curl -X POST http://localhost:8787/parse-nearby \
 
 ## Testing the parser
 
-`npm run eval` runs about 70 English and Korean phrasings (plain searches, time limits, saved home,
-named places, days and vague times of day, too-vague requests, follow-up refinements, brand names)
+`npm run eval` runs about 140 English and Korean phrasings (plain searches, time limits, saved home,
+named places, days and vague times of day, too-vague requests, follow-up refinements, brand names,
+questions and actions on results shown, saved places, "near my stop")
 through the same prompt, schema and call the Worker uses, and checks each structured result field
 by field. It needs the key in `.dev.vars` and makes one real API call per case.
 
@@ -80,9 +90,20 @@ npm run deploy
 
 ## Notes
 
-- **Rate limiting is per-isolate, not distributed** — a `Map` keyed by IP, reset on cold start.
-  Good enough to stop casual abuse of a personal project's API budget, not a hard guarantee
-  under load. A production version would move the counter to a Durable Object or KV.
+- **Abuse protection is rate limiting, not authentication** (`src/limits.ts`). The app sends a random
+  per-install id in `X-Install-Id`; a request with a well-formed one is counted against that install
+  (`INSTALL_LIMITER`, 16/min) and, at a looser ceiling, its IP (`IP_LIMITER`, 50/min) so a shared network
+  isn't one caller. One without is counted against its IP alone (`ANON_LIMITER`, 8/min), so leaving the
+  header off buys a worse limit, not a better one. The id is not a secret — a script can mint fresh ones —
+  and these are Cloudflare Rate Limiting bindings, which are per location and eventually consistent (a
+  burst of 26 requests let 17 through, not exactly 16). They blunt bursts; they don't meter. The hard
+  backstop on spend is the cap on the Anthropic key. Bodies over 32,000 characters get a 413 before any
+  parsing. Real app attestation (Play Integrity / App Attest) would close the rest, but needs a native
+  build and Google-side setup, and isn't done.
+- **What the Worker is sent, and what it keeps.** The message text, the previous parsed intent, the shown
+  results (names, ratings, hours, price) and the user's own names for saved places — never GPS position
+  or the home address. It stores nothing and logs only unexpected errors; the text and results are
+  forwarded to Anthropic's API to be read and answered.
 - **The model only ever extracts intent.** `/parse-nearby`'s fields are structured output via
   Zod (`betaZodOutputFormat`) — the schema and system prompt are written so the model can't
   return a specific place, distance, duration, or computed date, even if asked to; `/explain-results`
