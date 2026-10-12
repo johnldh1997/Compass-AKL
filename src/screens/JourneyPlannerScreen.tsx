@@ -27,6 +27,7 @@ import { getRouteIdsByShortName } from '../services/gtfs';
 import { getCurrentStepIndex } from '../services/journeyTracking';
 import { startJourneyTracking, stopJourneyTracking, updateJourneyNotification } from '../services/journeyNotification';
 import { getLegColor } from '../services/legColors';
+import { journeyStopFromRoute } from '../services/nearbyConversation';
 import { computeLegProgress, LatLon } from '../services/legProgress';
 import { getVehiclesForRoutes } from '../services/liveVehicleMatch';
 import { radius, spacing, ThemeColors } from '../theme';
@@ -481,6 +482,9 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
   if (screenState !== 'form' && journeyRoute) {
     const waitInfo =
       screenState === 'active' ? getUpcomingWait(journeyRoute.steps, currentStepIndex, new Date()) : null;
+    // Where this trip gets off — what Find Nearby searches around ("dinner near my stop"). A walking-only
+    // route has no stop, so there's nothing to offer.
+    const tripStop = journeyStopFromRoute(journeyRoute);
 
     return (
       <View style={styles.container}>
@@ -519,6 +523,18 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
               </Pressable>
             )}
           </View>
+          {/* --- Find Places Near Your Stop --- */}
+          {tripStop && (
+            <Pressable
+              style={styles.nearStopButton}
+              onPress={() => navigation.navigate('NearbySearch', { journeyStop: tripStop })}
+              accessibilityRole="button"
+            >
+              <Ionicons name="compass-outline" size={16} color={colors.primary} />
+              <Text style={styles.nearStopText}>{t('journey.findNearStop')}</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+            </Pressable>
+          )}
           {waitInfo && (
             <View style={styles.waitBanner}>
               <Ionicons name="time-outline" size={14} color={colors.primary} />
@@ -887,6 +903,19 @@ function createStyles(colors: ThemeColors) {
     paddingVertical: spacing.xs,
   },
   waitBannerText: { color: colors.primary, fontWeight: '600', fontSize: 12 },
+  nearStopButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  nearStopText: { flex: 1, color: colors.primary, fontWeight: '600', fontSize: 13 },
   endButton: {
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,

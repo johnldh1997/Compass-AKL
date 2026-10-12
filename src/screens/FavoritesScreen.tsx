@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import NicknameModal from '../components/NicknameModal';
 import { useFavorites } from '../context/FavoritesContext';
 import { useFavoritePlaces } from '../context/FavoritePlacesContext';
 import { useThemeColors } from '../context/ThemeContext';
@@ -26,7 +27,9 @@ export default function FavoritesScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { pickingFor, currentFrom, currentTo, returnTo } = route.params ?? {};
   const { favorites, loading: stopsLoading, removeFavorite } = useFavorites();
-  const { places, loading: placesLoading, removePlace } = useFavoritePlaces();
+  const { places, loading: placesLoading, removePlace, setNickname } = useFavoritePlaces();
+  // The place being named — see NicknameModal; what lets Find Nearby understand "near work".
+  const [naming, setNaming] = useState<FavoritePlace | null>(null);
   const t = useTranslation();
 
   const merged: MergedFavorite[] = [
@@ -104,14 +107,28 @@ export default function FavoritesScreen({ route, navigation }: Props) {
               <Ionicons name="star" size={18} color={colors.accent} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowText} numberOfLines={1}>
-                  {item.kind === 'stop' ? item.stop.stopName : item.place.endpoint.label}
+                  {item.kind === 'stop' ? item.stop.stopName : item.place.nickname || item.place.endpoint.label}
                 </Text>
                 <Text style={styles.rowSubtext} numberOfLines={1}>
                   {item.kind === 'stop' ? t('common.stopCode', { code: item.stop.stopCode }) : ''}
-                  {item.kind === 'place' && item.place.endpoint.kind === 'place' ? item.place.endpoint.secondaryLabel : ''}
+                  {item.kind === 'place' && item.place.nickname ? item.place.endpoint.label : ''}
+                  {item.kind === 'place' && !item.place.nickname && item.place.endpoint.kind === 'place'
+                    ? item.place.endpoint.secondaryLabel
+                    : ''}
                 </Text>
               </View>
             </Pressable>
+            {item.kind === 'place' && (
+              <Pressable
+                onPress={() => setNaming(item.place)}
+                hitSlop={8}
+                style={styles.nameButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('favoritesScreen.nameLabel', { name: item.place.nickname || item.place.endpoint.label })}
+              >
+                <Ionicons name={item.place.nickname ? 'pricetag' : 'pricetag-outline'} size={18} color={colors.textMuted} />
+              </Pressable>
+            )}
             <Pressable
               onPress={() => handleRemove(item)}
               hitSlop={8}
@@ -124,6 +141,16 @@ export default function FavoritesScreen({ route, navigation }: Props) {
             </Pressable>
           </View>
         )}
+      />
+
+      <NicknameModal
+        placeName={naming ? naming.endpoint.label : null}
+        initialNickname={naming?.nickname ?? ''}
+        onSave={(nickname) => {
+          if (naming) setNickname(naming.id, nickname);
+          setNaming(null);
+        }}
+        onClose={() => setNaming(null)}
       />
 
       {!pickingFor && (
@@ -154,6 +181,7 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: spacing.md,
     },
     rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    nameButton: { marginRight: spacing.md },
     rowText: { color: colors.text, fontSize: 15, fontWeight: '600' },
     rowSubtext: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
     empty: { alignItems: 'center', paddingTop: spacing.xl, paddingHorizontal: spacing.lg },

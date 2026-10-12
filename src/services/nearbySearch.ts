@@ -6,9 +6,12 @@
 // server-side (see server/), never here — this module only ever receives already-structured
 // intent and turns it into real places with real times.
 import { COMPUTE_ROUTES_URL, getApiKey } from './directions';
+import { getInstallId } from './installId';
+import { RecentTurn, ShownResult } from './nearbyConversation';
 import { JourneyEndpoint } from '../types';
 import {
   chooseTravelMode,
+  departureForRouting,
   filterAndRankByDuration,
   isOpenDuring,
   priceLevelFromPlaces,
@@ -61,6 +64,16 @@ export interface NearbySearchIntent {
 export type NearbySearchResult = RoutedCandidate;
 
 export interface ParsedNearbyQuery extends NearbySearchIntent {
+  // What kind of message this was: a search (the default — also what an older Worker, which doesn't
+  // say, is taken to mean), a question about the results on screen, or an action on one of them.
+  messageKind?: 'search' | 'question' | 'action';
+  actionType?: 'none' | 'directions' | 'maps';
+  // 1-based position among the results that were on screen; 0 when the model couldn't tell which.
+  actionTargetIndex?: number;
+  // The label of the saved place the message starts from ("" for none).
+  savedPlaceLabel?: string;
+  // True when it starts from where the planned trip ends ("near my stop").
+  useJourneyDestination?: boolean;
   // False when the proxy's model couldn't confidently identify a category from the text —
   // category is then empty and the caller should ask the user to rephrase, not search.
   confident: boolean;
@@ -90,24 +103,83 @@ function getNearbyProxyUrl(): string {
   return process.env.EXPO_PUBLIC_NEARBY_PROXY_URL ?? '';
 }
 
-// --- Query Parsing ---
-// Turns free text into structured search intent via the nearby-search-proxy Worker (see
-// server/) — the only place the Anthropic key lives, since a client bundle can't hold it
-// safely. This never touches Places/Routes itself, only extracts what to search for.
-// previousIntent (the prior turn's own parsed result, if any) lets a short follow-up like
-// "actually walking only" be understood as a refinement rather than failing as its own,
-// category-less request — the server decides whether it's actually a refinement or not.
-export async function parseNearbyQuery(text: string, previousIntent?: NearbySearchIntent | null): Promise<ParsedNearbyQuery> {
-  const response = await fetch(`${getNearbyProxyUrl()}/parse-nearby`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(previousIntent ? { text, previousIntent } : { text }),
-  });
-  const body = await response.json();
-  if (!response.ok) {
-    throw new Error(body?.error ?? `Query parsing error ${response.status}`);
+// --- Proxy Calls ---
+// Every call to the Find Nearby Worker (see server/) goes through here: it is the only place the Anthropic
+// key lives, since a client bundle can't hold it safely. Each call carries this install's id so the Worker
+// can rate-limit installs separately (see installId.ts and server/src/limits.ts).
+// A call that outlives this is abandoned for real — the request is aborted, not just ignored — so a
+// connection that has silently stalled (common on a flaky mobile network) is dropped rather than reused
+// by the next attempt. Just under the 12 s step timeout in nearbyTurn.ts, so that one never gets there first.
+const PROXY_TIMEOUT_MS = 11_000;
+
+async function callProxy(path: string, body: unknown, failureLabel: string): Promise<any> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${getNearbyProxyUrl()}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Install-Id': await getInstallId() },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error ?? `${failureLabel} error ${response.status}`);
+    }
+    return data;
+  } finally {
+    clearTimeout(timer);
   }
-  return body;
+}
+
+// --- Query Parsing ---
+// Turns free text into structured search intent via the Worker. This never touches Places/Routes itself,
+// only works out what the message is and what to search for. The context is what the app knows that
+// changes how a message reads:
+//  - previousIntent (the prior turn's own parsed result) lets a short follow-up like "actually walking
+//    only" be understood as a refinement rather than failing as its own, category-less request — the
+//    server decides whether it's actually a refinement or not.
+//  - shownResults (the results on screen) is what "take me to the second one" or "which is cheapest?"
+//    points at; without any, every message is a search.
+//  - savedPlaces (their labels) is what "near work" is matched against.
+export interface ParseContext {
+  previousIntent?: NearbySearchIntent | null;
+  shownResults?: ShownResult[];
+  savedPlaces?: string[];
+}
+
+export async function parseNearbyQuery(text: string, context: ParseContext = {}): Promise<ParsedNearbyQuery> {
+  const { previousIntent, shownResults, savedPlaces } = context;
+  return callProxy(
+    '/parse-nearby',
+    {
+      text,
+      ...(previousIntent ? { previousIntent } : {}),
+      ...(shownResults && shownResults.length > 0 ? { shownResults } : {}),
+      ...(savedPlaces ? { savedPlaces } : {}),
+    },
+    'Query parsing'
+  );
+}
+
+// The results as the Worker's reply-writing endpoints take them. Those endpoints only describe what
+// they're handed, so this is everything they're allowed to say about a place.
+function resultsPayload(results: NearbySearchResult[]) {
+  return results.map((r) => ({
+    name: r.name,
+    durationMinutes: r.durationMinutes,
+    mode: r.mode,
+    ...(r.routeShortName ? { routeShortName: r.routeShortName } : {}),
+    ...(r.rating != null ? { rating: r.rating } : {}),
+    ...(r.userRatingCount != null ? { userRatingCount: r.userRatingCount } : {}),
+    ...(r.editorialSummary ? { editorialSummary: r.editorialSummary } : {}),
+    ...(r.isOpenOnArrival != null ? { isOpenOnArrival: r.isOpenOnArrival } : {}),
+    ...(r.closesInMinutes != null ? { closesInMinutes: r.closesInMinutes } : {}),
+    ...(r.todayHoursText ? { todayHoursText: r.todayHoursText } : {}),
+    ...(r.priceLevel != null ? { priceLevel: r.priceLevel } : {}),
+    ...(r.servesVegetarianFood != null ? { servesVegetarianFood: r.servesVegetarianFood } : {}),
+    ...(r.outdoorSeating != null ? { outdoorSeating: r.outdoorSeating } : {}),
+  }));
 }
 
 // --- Result Explanation ---
@@ -119,34 +191,16 @@ export async function explainResults(
   hadExplicitTime: boolean,
   rankedBy: RankBy = 'nearest'
 ): Promise<string> {
-  const response = await fetch(`${getNearbyProxyUrl()}/explain-results`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      query,
-      hadExplicitTime,
-      rankedBy,
-      results: results.map((r) => ({
-        name: r.name,
-        durationMinutes: r.durationMinutes,
-        mode: r.mode,
-        ...(r.routeShortName ? { routeShortName: r.routeShortName } : {}),
-        ...(r.rating != null ? { rating: r.rating } : {}),
-        ...(r.editorialSummary ? { editorialSummary: r.editorialSummary } : {}),
-        ...(r.isOpenOnArrival != null ? { isOpenOnArrival: r.isOpenOnArrival } : {}),
-        ...(r.closesInMinutes != null ? { closesInMinutes: r.closesInMinutes } : {}),
-        ...(r.todayHoursText ? { todayHoursText: r.todayHoursText } : {}),
-        ...(r.priceLevel != null ? { priceLevel: r.priceLevel } : {}),
-        ...(r.servesVegetarianFood != null ? { servesVegetarianFood: r.servesVegetarianFood } : {}),
-        ...(r.outdoorSeating != null ? { outdoorSeating: r.outdoorSeating } : {}),
-      })),
-    }),
-  });
-  const body = await response.json();
-  if (!response.ok) {
-    throw new Error(body?.error ?? `Explanation error ${response.status}`);
-  }
-  return body.reply ?? '';
+  const data = await callProxy('/explain-results', { query, hadExplicitTime, rankedBy, results: resultsPayload(results) }, 'Explanation');
+  return data.reply ?? '';
+}
+
+// --- Follow-up Questions ---
+// Answers a question about results already on screen ("which is best rated?") from those results alone —
+// no new Places or Routes call is made. recentTurns is the last few things said, for "and the other one?".
+export async function answerQuestion(question: string, results: NearbySearchResult[], recentTurns: RecentTurn[]): Promise<string> {
+  const data = await callProxy('/answer-question', { question, results: resultsPayload(results), recentTurns }, 'Answer');
+  return data.reply ?? '';
 }
 
 interface OpeningHoursField {
@@ -346,6 +400,9 @@ async function routeToCandidate(
 export async function searchNearby(
   userLocation: { lat: number; lon: number; label: string },
   intent: NearbySearchIntent,
+  // The time to search for when the user stated none of their own — e.g. when their trip gets them
+  // there ("near my stop"). A time they did state always wins.
+  defaultDepartureTime: Date | null = null,
   maxRoutedCandidates: number = DEFAULT_MAX_ROUTED_CANDIDATES
 ): Promise<NearbySearchOutcome> {
   const reference = intent.referenceLocationText
@@ -353,7 +410,7 @@ export async function searchNearby(
     : null;
   const origin = reference ?? userLocation;
   const originLabel = reference?.name ?? userLocation.label;
-  const departureTime = resolveTargetDateTime(new Date(), intent.targetDay, intent.hour, intent.minute);
+  const departureTime = resolveTargetDateTime(new Date(), intent.targetDay, intent.hour, intent.minute) ?? defaultDepartureTime;
 
   const rankBy = intent.rankBy ?? 'nearest';
   const rankOptions = {
@@ -382,7 +439,8 @@ export async function searchNearby(
   const pruned = selectCandidatesForRouting(origin, possiblyOpen, { ...rankOptions, maxCandidates: maxRoutedCandidates, radiusMeters: searchRadius });
   const eligible = pruned.filter((c) => intent.modes.includes(chooseTravelMode(c.straightLineMeters)));
 
-  const routed = await Promise.all(eligible.map((c) => routeToCandidate(origin, c, departureTime)));
+  const routingTime = departureForRouting(departureTime);
+  const routed = await Promise.all(eligible.map((c) => routeToCandidate(origin, c, routingTime)));
   const successful = routed.filter((r): r is RoutedCandidate => r !== null);
 
   // Opening hours are judged at departure + travel time, not at departure: a place that closes ten

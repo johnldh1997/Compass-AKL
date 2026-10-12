@@ -75,6 +75,18 @@ export interface FavoritePlace {
   id: string;
   endpoint: JourneyEndpoint;
   addedAt: number;
+  // What the user calls it ("Work", "Gym") — lets Find Nearby resolve "near work". Optional: most
+  // favourites are just named after their Google place and never need one.
+  nickname?: string;
+}
+
+// Where a planned trip ends: the stop the last transit leg gets off at, and when. Lets Find Nearby
+// search "near my stop" for the moment the user would actually be there.
+export interface JourneyStop {
+  name: string;
+  lat: number;
+  lon: number;
+  arrivalIso: string;
 }
 
 export interface RecentPlace {
@@ -218,5 +230,7 @@ export type RootStackParamList = {
   // Free-text "what's nearby" search (e.g. "Japanese food within 20 minutes"). Selecting a
   // result hands off to JourneyPlanner the same way Home/MyTrips do — restoredFrom/To +
   // autoSearch — rather than injecting a route directly, since a place isn't a JourneyRoute.
-  NearbySearch: undefined;
+  // journeyStop is set when opened from a planned trip, so "near my stop" has something to mean
+  // before the trip is started (a started one is also found from the saved active journey).
+  NearbySearch: { journeyStop?: JourneyStop } | undefined;
 };

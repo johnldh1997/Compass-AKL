@@ -16,7 +16,7 @@ const FEATURE_KEYS = [
 
 const HOW_TO_KEYS = ['about.howTo.map', 'about.howTo.plan', 'about.howTo.menu', 'about.howTo.favourite'] as const;
 
-const LIMITATION_KEYS = ['about.limitation.routeShapes'] as const;
+const LIMITATION_KEYS = ['about.limitation.routeShapes', 'nearby.privacy'] as const;
 
 export default function AboutScreen() {
   const colors = useThemeColors();

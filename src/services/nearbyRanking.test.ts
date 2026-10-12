@@ -11,6 +11,7 @@ import {
   minutesUntilClosing,
   withArrivalHours,
   qualityScore,
+  departureForRouting,
   requirementMatch,
   priceLevelFromPlaces,
   selectCandidatesForRouting,
@@ -375,4 +376,26 @@ test('priceLevelFromPlaces: maps the Places enum to 0-4, and leaves unknowns unk
   assert.equal(priceLevelFromPlaces('PRICE_LEVEL_VERY_EXPENSIVE'), 4);
   assert.equal(priceLevelFromPlaces('PRICE_LEVEL_UNSPECIFIED'), undefined);
   assert.equal(priceLevelFromPlaces(undefined), undefined);
+});
+
+// --- Routing Departure Time ---
+test('departureForRouting: "open now" (the current moment) is routed as leaving now', () => {
+  const now = new Date(2026, 9, 12, 11, 48, 30);
+  assert.equal(departureForRouting(new Date(now), now), null);
+});
+
+test('departureForRouting: a time that has just passed or is seconds away is routed as now', () => {
+  const now = new Date(2026, 9, 12, 11, 48, 30);
+  assert.equal(departureForRouting(new Date(2026, 9, 12, 11, 48, 0), now), null);
+  assert.equal(departureForRouting(new Date(2026, 9, 12, 11, 49, 0), now), null);
+});
+
+test('departureForRouting: a genuinely future time is kept', () => {
+  const now = new Date(2026, 9, 12, 11, 48, 30);
+  const later = new Date(2026, 9, 13, 17, 0, 0);
+  assert.equal(departureForRouting(later, now), later);
+});
+
+test('departureForRouting: no stated time stays no time', () => {
+  assert.equal(departureForRouting(null), null);
 });

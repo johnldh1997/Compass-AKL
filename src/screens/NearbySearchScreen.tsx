@@ -3,33 +3,38 @@ import { Ionicons } from '@expo/vector-icons';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedPressable from '../components/AnimatedPressable';
 import { useThemeColors } from '../context/ThemeContext';
+import { TranslationKey } from '../i18n/translations';
 import { useTranslation } from '../i18n/useTranslation';
+import { useFavoritePlaces } from '../context/FavoritePlacesContext';
 import { useHomeAddress } from '../context/HomeAddressContext';
 import { useSettings } from '../context/SettingsContext';
-import { getCurrentLocationEndpoint } from '../services/location';
-import {
-  explainResults,
-  NearbySearchResult,
-  ParsedNearbyQuery,
-  parseNearbyQuery,
-  resolveEndpointCoordinates,
-  searchNearby,
-} from '../services/nearbySearch';
+import { clampToNow } from '../services/departureTime';
+import { recentTurnsFrom } from '../services/nearbyConversation';
+import { NearbySearchResult, ParsedNearbyQuery } from '../services/nearbySearch';
+import { ProgressStep, runNearbyTurn, ShownSearch } from '../services/nearbyTurn';
 import { radius, spacing, ThemeColors } from '../theme';
 import { JourneyEndpoint, RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NearbySearch'>;
-
-// A fresh GPS fix (getCurrentLocationEndpoint, deliberately not the faster-but-stale
-// getFastCoordinates — see alerts.ts) can occasionally hang far longer than a normal
-// network call, especially indoors. Without a bound here the loading spinner never
-// resolves — matches the LOCATION_TIMEOUT_MS pattern in VehicleMap.tsx/ChooseOnMapScreen.tsx,
-// just longer since accuracy matters more for "what's near me" than for map centering.
-const SEARCH_TIMEOUT_MS = 12_000;
 
 // --- Persistence ---
 // A chat that vanishes the moment you leave the screen doesn't read as a real conversation —
@@ -71,10 +76,13 @@ type ChatMessage =
       // (or a correct one) be visibly obvious rather than buried in prose.
       usedReferenceLocation: boolean;
       departureTime: Date | null;
-      // Best-effort — a failed explain-results call still shows real results, just without
-      // the written blurb, rather than losing the results over a second call's failure.
-      explanation?: string;
-    };
+    }
+  // --- Written Summary ---
+  // The reply that explains a results message, sent as its own follow-up bubble once it's ready.
+  // Results used to wait for it (several seconds); and had it been inserted into the results
+  // bubble instead, it would have pushed the list down mid-read — right as someone is about to
+  // tap a row. Best-effort: a failed explain call just means no summary bubble follows.
+  | { id: string; role: 'assistant'; kind: 'summary'; text: string };
 
 // Plain Omit<ChatMessage, 'id'> collapses the union to its shared fields only — this
 // distributes over each member instead, so each call site still gets its own shape checked.
@@ -114,7 +122,38 @@ function formatDepartureLabel(date: Date, isKorean: boolean, t: ReturnType<typeo
   return `${dayLabel}, ${time}`;
 }
 
-export default function NearbySearchScreen({ navigation }: Props) {
+// --- Progress Text ---
+// What the spinner says while a search runs. 'writing' is the written summary: the results are
+// already on screen by then, so it doesn't lock the input the way the earlier steps do.
+const PROGRESS_KEYS: Record<ProgressStep, TranslationKey> = {
+  locating: 'nearby.progress.locating',
+  understanding: 'nearby.progress.understanding',
+  searching: 'nearby.progress.searching',
+  answering: 'nearby.progress.answering',
+  writing: 'nearby.progress.writing',
+};
+
+// --- Example Prompts ---
+// Shown on an empty chat; tapping one sends it as-is.
+const EXAMPLE_KEYS: TranslationKey[] = ['nearby.example.1', 'nearby.example.2', 'nearby.example.3', 'nearby.example.4'];
+
+// --- Quick Replies ---
+// One-tap follow-ups under the latest answer. Each is sent as the user's own message, so the
+// parser handles it like any typed refinement of the previous request (server/eval has a case for
+// every one, in both languages). Only the ones that would actually change something are offered —
+// no "Walking only" after a walking-only search.
+const QUICK_REPLIES: { key: TranslationKey; show: (intent: ParsedNearbyQuery) => boolean }[] = [
+  { key: 'nearby.chip.walking', show: (i) => i.modes.includes('TRANSIT') },
+  { key: 'nearby.chip.openNow', show: (i) => i.targetDay === null && i.hour === null },
+  { key: 'nearby.chip.best', show: (i) => i.rankBy !== 'best' },
+  { key: 'nearby.chip.closest', show: (i) => i.rankBy === 'best' },
+  { key: 'nearby.chip.within10', show: (i) => i.maxMinutes === null || i.maxMinutes > 10 },
+  { key: 'nearby.chip.cheap', show: (i) => !i.wantsCheap },
+  { key: 'nearby.chip.vegetarian', show: (i) => !i.wantsVegetarian },
+  { key: 'nearby.chip.outdoor', show: (i) => !i.wantsOutdoorSeating },
+];
+
+export default function NearbySearchScreen({ navigation, route }: Props) {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -126,10 +165,30 @@ export default function NearbySearchScreen({ navigation }: Props) {
   const { language } = useSettings();
   const isKorean = language === 'ko';
   const { homeAddress } = useHomeAddress();
+  const { places: savedPlaces } = useFavoritePlaces();
+  // Set when this chat was opened from a planned trip — where it ends, and when they'd get there.
+  const journeyStop = route.params?.journeyStop;
   const [queryText, setQueryText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<ProgressStep | null>(null);
+  // The input and chips lock while a search is actually running, but not while only the written
+  // summary is still coming — the results are already on screen and usable by then.
+  const loading = progress !== null && progress !== 'writing';
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  // --- Auto Scroll ---
+  // While a search runs, new content scrolls into view. Fresh results scroll to their top (the best
+  // match first, not the last row) and then stop following, so a summary arriving later doesn't yank
+  // the list away from what's being read. Following resumes only when the reader themselves scrolls
+  // back to the bottom, or sends something new.
+  const followBottomRef = useRef(true);
+  const scrollToResultsRef = useRef(false);
+  // The end of a scroll animation we started ourselves also fires onMomentumScrollEnd on Android —
+  // that must not count as the reader choosing to sit at the bottom.
+  const programmaticScrollRef = useRef(false);
+  const messageCountRef = useRef(0);
+  messageCountRef.current = messages.length;
+  // Which search a late summary belongs to — a newer search started meanwhile makes it stale.
+  const searchSeqRef = useRef(0);
   const nextId = useRef(0);
   // The last successfully-understood turn, so a short follow-up ("actually walking only")
   // can be resolved as a refinement of it server-side — cleared only by a fresh confident
@@ -195,110 +254,80 @@ export default function NearbySearchScreen({ navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation, messages.length, colors, t]);
 
-  async function handleSearch() {
-    const text = queryText.trim();
+  // The search the chat is currently showing — what a follow-up question or action ("which is best
+  // rated?", "take me to the second one") refers to. Null on a fresh chat.
+  function latestShownSearch(): ShownSearch | null {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (message.role === 'assistant' && message.kind === 'results') {
+        return { results: message.results, origin: message.origin, departureTime: message.departureTime };
+      }
+    }
+    return null;
+  }
+
+  // Used by the text box, the example prompts and the quick replies alike. The thinking happens in
+  // runNearbyTurn (services/nearbyTurn.ts); this only draws what it reports and carries out the
+  // navigation it asks for.
+  async function runSearch(rawText: string) {
+    const text = rawText.trim();
     if (!text || loading) return;
     setQueryText('');
+    followBottomRef.current = true;
+    const searchSeq = ++searchSeqRef.current;
+    // Gathered before the user's message is appended, so the turns passed along are the ones before it.
+    const input = {
+      text,
+      lastIntent: lastIntentRef.current,
+      shown: latestShownSearch(),
+      recentTurns: recentTurnsFrom(messages),
+      savedPlaces,
+      homeAddress,
+      journeyStop: journeyStop ?? null,
+    };
     appendMessage({ role: 'user', text });
-    setLoading(true);
 
-    function withTimeout<T>(promise: Promise<T>): Promise<T> {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('nearby search step timed out')), SEARCH_TIMEOUT_MS)
-      );
-      return Promise.race([promise, timeout]);
-    }
-
-    let originEndpoint: JourneyEndpoint | null;
-    try {
-      originEndpoint = await withTimeout(getCurrentLocationEndpoint());
-    } catch (err) {
-      console.error('Nearby search: location fetch failed', err);
-      appendMessage({ role: 'assistant', kind: 'error', text: t('nearby.locationNeeded') });
-      setLoading(false);
-      return;
-    }
-    if (!originEndpoint || originEndpoint.kind !== 'coordinates') {
-      appendMessage({ role: 'assistant', kind: 'error', text: t('nearby.locationNeeded') });
-      setLoading(false);
-      return;
-    }
-
-    let intent;
-    try {
-      intent = await withTimeout(parseNearbyQuery(text, lastIntentRef.current));
-    } catch (err) {
-      console.error('Nearby search: query parsing failed', err);
-      appendMessage({ role: 'assistant', kind: 'error', text: t('nearby.loadError') });
-      setLoading(false);
-      return;
-    }
-    // Kept even when not confident — a clarifying question's answer is a follow-up to *this*
-    // partial intent, so the next turn needs it as context to merge into, not a blank slate.
-    lastIntentRef.current = intent;
-    if (!intent.confident || !intent.category) {
-      appendMessage(
-        intent.clarifyingQuestion
-          ? { role: 'assistant', kind: 'question', text: intent.clarifyingQuestion }
-          : { role: 'assistant', kind: 'error', text: t('nearby.notUnderstood') }
-      );
-      setLoading(false);
-      return;
-    }
-
-    // "Home" is a personal reference to the app's own saved address, never a business name to
-    // geocode through Places — without this, "home" was being searched literally and matching
-    // whatever nearby business happened to be named "Home" (e.g. a real "Home Cafe").
-    let searchOrigin = { lat: originEndpoint.lat, lon: originEndpoint.lon, label: originEndpoint.label };
-    if (intent.useSavedHome) {
-      if (!homeAddress) {
-        appendMessage({ role: 'assistant', kind: 'error', text: t('nearby.homeNotSet') });
-        setLoading(false);
-        return;
-      }
-      const homeCoords = await resolveEndpointCoordinates(homeAddress);
-      if (!homeCoords) {
-        appendMessage({ role: 'assistant', kind: 'error', text: t('nearby.loadError') });
-        setLoading(false);
-        return;
-      }
-      searchOrigin = { lat: homeCoords.lat, lon: homeCoords.lon, label: homeAddress.label };
-    }
-
-    let outcome;
-    try {
-      outcome = await withTimeout(searchNearby(searchOrigin, intent));
-    } catch (err) {
-      console.error('Nearby search: place search failed', err);
-      appendMessage({ role: 'assistant', kind: 'error', text: t('nearby.loadError') });
-      setLoading(false);
-      return;
-    }
-    if (outcome.results.length === 0) {
-      appendMessage({ role: 'assistant', kind: 'error', text: t('nearby.noResults') });
-      setLoading(false);
-      return;
-    }
-
-    const resolvedOrigin: JourneyEndpoint = { kind: 'coordinates', lat: outcome.origin.lat, lon: outcome.origin.lon, label: outcome.originLabel };
-    // Best-effort: the results themselves are the real value here, so a failed/slow
-    // explanation call still shows them, just without the written blurb.
-    let explanation: string | undefined;
-    try {
-      explanation = await withTimeout(explainResults(text, outcome.results, outcome.departureTime !== null, intent.rankBy));
-    } catch (err) {
-      console.error('Nearby search: explanation failed', err);
-    }
-    appendMessage({
-      role: 'assistant',
-      kind: 'results',
-      results: outcome.results,
-      origin: resolvedOrigin,
-      usedReferenceLocation: outcome.usedReferenceLocation,
-      departureTime: outcome.departureTime,
-      explanation,
+    await runNearbyTurn(input, {
+      t,
+      setProgress,
+      emit: (output) => {
+        if (output.kind === 'results') scrollToResultsRef.current = true;
+        appendMessage({ role: 'assistant', ...output });
+      },
+      setLastIntent: (intent) => {
+        lastIntentRef.current = intent;
+      },
+      openDirections: ({ origin, departureTime, result }) => handleSelectResult(origin, departureTime, result),
+      openUrl: (url) => Linking.openURL(url).catch(() => {}),
+      isCurrent: () => searchSeqRef.current === searchSeq,
     });
-    setLoading(false);
+  }
+
+  function handleSubmit() {
+    runSearch(queryText);
+  }
+
+  // Only the reader's own scrolling counts here — the programmatic scrolls above don't fire these.
+  function handleReaderScrolled(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    if (programmaticScrollRef.current) return;
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    followBottomRef.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 160;
+  }
+
+  function handleContentSizeChange() {
+    if (scrollToResultsRef.current) {
+      scrollToResultsRef.current = false;
+      followBottomRef.current = false;
+      // A row can't be scrolled to until it has been measured, which happens just after this fires —
+      // and by then the message count is the up-to-date one, not what this render saw.
+      setTimeout(() => {
+        programmaticScrollRef.current = true;
+        listRef.current?.scrollToIndex({ index: messageCountRef.current - 1, viewPosition: 0, animated: true });
+      }, 150);
+    } else if (followBottomRef.current) {
+      programmaticScrollRef.current = true;
+      listRef.current?.scrollToEnd({ animated: true });
+    }
   }
 
   function handleSelectResult(origin: JourneyEndpoint, departureTime: Date | null, result: NearbySearchResult) {
@@ -338,6 +367,15 @@ export default function NearbySearchScreen({ navigation }: Props) {
         </View>
       );
     }
+    if (item.kind === 'summary') {
+      return (
+        <View style={styles.assistantRow}>
+          <View style={styles.assistantBubble}>
+            <Text style={styles.assistantQuestionText}>{item.text}</Text>
+          </View>
+        </View>
+      );
+    }
     return (
       <View style={styles.assistantRow}>
         <View style={[styles.assistantBubble, styles.resultsBubble]}>
@@ -357,7 +395,6 @@ export default function NearbySearchScreen({ navigation }: Props) {
               )}
             </View>
           )}
-          {!!item.explanation && <Text style={styles.explanationText}>{item.explanation}</Text>}
           {item.results.map((result) => (
             <View key={result.id} style={styles.resultRowOuter}>
               <AnimatedPressable
@@ -425,21 +462,79 @@ export default function NearbySearchScreen({ navigation }: Props) {
     );
   }
 
+  // --- Quick Replies ---
+  // Under the latest answer only, and only for a request the parser actually understood.
+  function renderQuickReplies() {
+    const intent = lastIntentRef.current;
+    const last = messages[messages.length - 1];
+    if (!intent?.confident || last?.role !== 'assistant' || (last.kind !== 'results' && last.kind !== 'summary')) return null;
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        {QUICK_REPLIES.filter((reply) => reply.show(intent)).map((reply) => (
+          <AnimatedPressable key={reply.key} scaleTo={0.95} style={styles.chip} onPress={() => runSearch(t(reply.key))}>
+            <Text style={styles.chipText}>{t(reply.key)}</Text>
+          </AnimatedPressable>
+        ))}
+      </ScrollView>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={headerHeight}
     >
+      {/* --- Planned Trip Context --- */}
+      {!!journeyStop && (
+        <View style={styles.tripBanner}>
+          <Ionicons name="flag-outline" size={14} color={colors.primary} />
+          <Text style={styles.tripBannerText} numberOfLines={2}>
+            {t('nearby.journeyContext', {
+              stop: journeyStop.name,
+              time: formatDepartureLabel(clampToNow(new Date(journeyStop.arrivalIso)), isKorean, t),
+            })}
+          </Text>
+        </View>
+      )}
       <FlatList
         ref={listRef}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messageList}
-        ListEmptyComponent={<Text style={styles.hint}>{t('nearby.hint')}</Text>}
-        ListFooterComponent={loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+        ListEmptyComponent={
+          <View>
+            <Text style={styles.hint}>{t('nearby.hint')}</Text>
+            <View style={styles.exampleList}>
+              {(journeyStop ? (['nearby.example.journey', ...EXAMPLE_KEYS.slice(0, 3)] as TranslationKey[]) : EXAMPLE_KEYS).map((key) => (
+                <AnimatedPressable key={key} scaleTo={0.98} style={styles.exampleRow} onPress={() => runSearch(t(key))}>
+                  <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+                  <Text style={styles.exampleText}>{t(key)}</Text>
+                </AnimatedPressable>
+              ))}
+            </View>
+            {/* --- Privacy Note --- What leaves the phone to make this chat work. */}
+            <Text style={styles.privacyNote}>{t('nearby.privacy')}</Text>
+          </View>
+        }
+        ListFooterComponent={
+          progress ? (
+            <View style={styles.progressRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.progressText}>{t(PROGRESS_KEYS[progress])}</Text>
+            </View>
+          ) : (
+            renderQuickReplies()
+          )
+        }
+        onScrollBeginDrag={() => {
+          programmaticScrollRef.current = false;
+        }}
+        onScrollEndDrag={handleReaderScrolled}
+        onMomentumScrollEnd={handleReaderScrolled}
+        onContentSizeChange={handleContentSizeChange}
+        onScrollToIndexFailed={() => listRef.current?.scrollToEnd({ animated: true })}
       />
       <View style={[styles.inputRow, { paddingBottom: insets.bottom + spacing.sm }]}>
         <TextInput
@@ -448,11 +543,11 @@ export default function NearbySearchScreen({ navigation }: Props) {
           placeholderTextColor={colors.textMuted}
           value={queryText}
           onChangeText={setQueryText}
-          onSubmitEditing={handleSearch}
+          onSubmitEditing={handleSubmit}
           returnKeyType="send"
           editable={!loading}
         />
-        <AnimatedPressable style={styles.searchButton} onPress={handleSearch} disabled={!queryText.trim() || loading}>
+        <AnimatedPressable style={styles.searchButton} onPress={handleSubmit} disabled={!queryText.trim() || loading}>
           <Ionicons name="send" size={20} color="#FFFFFF" />
         </AnimatedPressable>
       </View>
@@ -465,7 +560,41 @@ function createStyles(colors: ThemeColors) {
     container: { flex: 1, backgroundColor: colors.background },
     messageList: { padding: spacing.lg, flexGrow: 1, gap: spacing.sm },
     hint: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: spacing.lg },
-    loader: { marginTop: spacing.sm },
+    privacyNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: spacing.lg },
+    tripBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      backgroundColor: colors.primaryMuted,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+    },
+    tripBannerText: { flex: 1, color: colors.text, fontSize: 12, fontWeight: '600' },
+    progressRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+    progressText: { color: colors.textMuted, fontSize: 13 },
+    exampleList: { marginTop: spacing.lg, gap: spacing.sm },
+    exampleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    exampleText: { flex: 1, color: colors.text, fontSize: 14 },
+    chipRow: { gap: spacing.sm, paddingVertical: spacing.xs },
+    chip: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: radius.lg,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    chipText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
     userRow: { alignItems: 'flex-end' },
     userBubble: {
       maxWidth: '85%',
@@ -500,7 +629,6 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 3,
     },
     contextChipText: { color: colors.textMuted, fontSize: 11, fontWeight: '600' },
-    explanationText: { color: colors.text, fontSize: 14, lineHeight: 20, marginBottom: spacing.xs },
     // Overrides assistantBubble's maxWidth: a shrink-to-fit bubble with no definite width
     // gives resultRow's flex:1 text column nothing to expand into, collapsing it to zero —
     // this needs a real width for that to resolve, unlike a plain text bubble.

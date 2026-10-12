@@ -11,6 +11,8 @@ interface FavoritePlacesContextValue {
   addPlace: (endpoint: JourneyEndpoint) => void;
   removePlace: (id: string) => void;
   removeByEndpoint: (endpoint: JourneyEndpoint) => void;
+  // An empty or blank name clears it.
+  setNickname: (id: string, nickname: string) => void;
 }
 
 const FavoritePlacesContext = createContext<FavoritePlacesContextValue | undefined>(undefined);
@@ -51,6 +53,15 @@ export function FavoritePlacesProvider({ children }: { children: React.ReactNode
       removePlace: (id) => setPlaces((prev) => prev.filter((p) => p.id !== id)),
       removeByEndpoint: (endpoint) =>
         setPlaces((prev) => prev.filter((p) => endpointKey(p.endpoint) !== endpointKey(endpoint))),
+      setNickname: (id, nickname) =>
+        setPlaces((prev) =>
+          prev.map((p) => {
+            if (p.id !== id) return p;
+            const { nickname: _old, ...rest } = p;
+            const trimmed = nickname.trim();
+            return trimmed ? { ...rest, nickname: trimmed } : rest;
+          })
+        ),
     }),
     [places, loading]
   );

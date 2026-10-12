@@ -253,6 +253,15 @@ export function resolveTargetDateTime(now: Date, targetDay: TargetDay | null, ho
   return result;
 }
 
+// What to send Google's Routes API as the departure time. It rejects one that has already passed by
+// the time the request arrives, and "open now" resolves to exactly the current moment — so a time
+// that is now, or only moments away, is left out, which routes for leaving right now.
+export const ROUTING_MIN_LEAD_MS = 60_000;
+
+export function departureForRouting(departure: Date | null, now: Date = new Date()): Date | null {
+  return departure !== null && departure.getTime() > now.getTime() + ROUTING_MIN_LEAD_MS ? departure : null;
+}
+
 // --- Opening Hours ---
 // day is 0=Sunday..6=Saturday, matching Google Places' own regularOpeningHours.periods shape —
 // kept as a plain structural type here (not importing anything Places-specific) so this stays
