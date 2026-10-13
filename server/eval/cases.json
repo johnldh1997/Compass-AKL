@@ -827,5 +827,134 @@
     "shown": [{"name": "Ten-hana", "minutes": 2, "mode": "WALK", "rating": 4.6, "ratingCount": 347, "hours": "open", "priceLevel": 2}, {"name": "Japanese Dining You", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 551, "hours": "open", "priceLevel": 1}, {"name": "Ramyun Lab", "minutes": 3, "mode": "WALK", "rating": 4.8, "ratingCount": 48, "hours": "open", "priceLevel": 1}, {"name": "Taikin Teppanyaki and Ta", "minutes": 4, "mode": "WALK", "rating": 4.6, "ratingCount": 264, "hours": "open", "priceLevel": 2, "outdoorSeating": true}, {"name": "Go Ramen", "minutes": 5, "mode": "WALK", "rating": 4.6, "ratingCount": 325, "hours": "open", "priceLevel": 1, "vegetarian": true, "outdoorSeating": true}, {"name": "Oodles", "minutes": 5, "mode": "WALK", "rating": 4.9, "ratingCount": 2287, "hours": "open", "priceLevel": 2, "vegetarian": true}],
     "text": "sushi",
     "expect": {"messageKind": "search", "category": ["sushi"], "confident": true, "asksQuestion": false}
+  },
+  {
+    "id": "pt-burger",
+    "text": "burger place",
+    "expect": {"placeType": "hamburger_restaurant", "category": ["burger"]}
+  },
+  {
+    "id": "pt-burgers-near-me",
+    "text": "burgers near me",
+    "expect": {"placeType": "hamburger_restaurant"}
+  },
+  {
+    "id": "pt-closest-burger",
+    "text": "closest burger",
+    "expect": {"placeType": "hamburger_restaurant", "maxMinutes": null}
+  },
+  {
+    "id": "pt-pizza",
+    "text": "pizza near me",
+    "expect": {"placeType": "pizza_restaurant"}
+  },
+  {
+    "id": "pt-ramen",
+    "text": "ramen",
+    "expect": {"placeType": "ramen_restaurant"}
+  },
+  {
+    "id": "pt-sushi",
+    "text": "sushi within 15 minutes",
+    "expect": {"placeType": "sushi_restaurant", "maxMinutes": 15}
+  },
+  {
+    "id": "pt-korean",
+    "text": "korean food",
+    "expect": {"placeType": "korean_restaurant"}
+  },
+  {
+    "id": "pt-japanese",
+    "text": "japanese restaurant",
+    "expect": {"placeType": "japanese_restaurant"}
+  },
+  {
+    "id": "pt-coffee",
+    "text": "coffee near me",
+    "expect": {"placeType": ["coffee_shop", "cafe"]}
+  },
+  {
+    "id": "pt-cafe",
+    "text": "a cafe",
+    "expect": {"placeType": ["cafe", "coffee_shop"]}
+  },
+  {
+    "id": "pt-pharmacy",
+    "text": "nearest chemist",
+    "expect": {"placeType": "pharmacy"}
+  },
+  {
+    "id": "pt-supermarket",
+    "text": "supermarket near me",
+    "expect": {"placeType": "supermarket"}
+  },
+  {
+    "id": "pt-gym",
+    "text": "gym nearby",
+    "expect": {"placeType": "gym"}
+  },
+  {
+    "id": "pt-best-burger",
+    "text": "best burger near Sky Tower",
+    "expect": {"placeType": "hamburger_restaurant", "rankBy": "best", "referenceLocationText": ["sky tower"]}
+  },
+  {
+    "id": "ko-pt-burger",
+    "text": "버거집",
+    "expect": {"placeType": "hamburger_restaurant"}
+  },
+  {
+    "id": "ko-pt-ramen",
+    "text": "근처 라멘집",
+    "expect": {"placeType": "ramen_restaurant"}
+  },
+  {
+    "id": "ko-pt-cafe",
+    "text": "근처 카페",
+    "expect": {"placeType": ["cafe", "coffee_shop"]}
+  },
+  {
+    "id": "pt-brand-mcdonalds",
+    "text": "closest McDonald's",
+    "expect": {"placeType": "none", "category": ["mcdonald"]}
+  },
+  {
+    "id": "pt-brand-starbucks",
+    "text": "starbucks near me",
+    "expect": {"placeType": "none", "category": ["starbucks"]}
+  },
+  {
+    "id": "pt-brand-carlsjr",
+    "text": "Carl's Jr",
+    "expect": {"placeType": "none", "category": ["carl"]}
+  },
+  {
+    "id": "pt-brand-yogost",
+    "text": "closest yogost",
+    "expect": {"placeType": "none", "category": ["yogost"]}
+  },
+  {
+    "id": "pt-brand-gongcha",
+    "text": "gong cha near me",
+    "expect": {"placeType": "none", "category": ["gong cha"]}
+  },
+  {
+    "id": "ko-pt-brand",
+    "text": "가장 가까운 스타벅스",
+    "expect": {"placeType": "none"}
+  },
+  {
+    "id": "pt-refine-keeps",
+    "previous": {"category": "burger restaurant", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true, "placeType": "hamburger_restaurant"},
+    "shown": [{"name": "Mojo", "minutes": 2, "mode": "WALK", "rating": 4.4, "ratingCount": 900, "hours": "open"}],
+    "text": "walking only",
+    "expect": {"placeType": "hamburger_restaurant", "modes": ["WALK"]}
+  },
+  {
+    "id": "pt-refine-new-category",
+    "previous": {"category": "burger restaurant", "maxMinutes": null, "modes": ["WALK", "TRANSIT"], "useSavedHome": false, "referenceLocationText": null, "targetDay": null, "hour": null, "minute": null, "rankBy": "nearest", "wantsCheap": false, "wantsVegetarian": false, "wantsOutdoorSeating": false, "confident": true, "placeType": "hamburger_restaurant"},
+    "shown": [{"name": "Mojo", "minutes": 2, "mode": "WALK", "rating": 4.4, "ratingCount": 900, "hours": "open"}],
+    "text": "what about pizza instead?",
+    "expect": {"placeType": "pizza_restaurant"}
   }
 ]

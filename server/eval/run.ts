@@ -23,12 +23,15 @@ import { PARSE_MODEL, PreviousIntentSchema, parseNearbyIntent, type NearbyQuery,
 //   maxMinutes: an exact number, null, or { min, max } for "some number in this range"
 //   referenceLocationText: null, or substrings like category
 //   asksQuestion: whether a clarifying question was written
+//   placeType: Google's place type for the kind of place asked for ('none' for a brand or specific shop) —
+//             a string, or a list of acceptable ones
 //   savedPlaceLabel: the saved place the message means ("" for none), compared ignoring case
 //   shown / saved (on the case, not in expect): the results on screen and the saved place names the app
 //   would send along. A case with neither is a fresh chat with nothing saved.
 interface Expect {
   category?: string[];
   categoryAvoids?: string[];
+  placeType?: string | string[];
   maxMinutes?: number | null | { min: number; max: number };
   modes?: string[];
   useSavedHome?: boolean;
@@ -70,6 +73,10 @@ function check(got: NearbyQuery, expect: Expect): string[] {
   if (expect.category !== undefined) {
     const category = got.category.toLowerCase();
     if (!expect.category.some((s) => category.includes(s.toLowerCase()))) fail('category', `one of ${show(expect.category)}`, got.category);
+  }
+  if (expect.placeType !== undefined) {
+    const accepted = Array.isArray(expect.placeType) ? expect.placeType : [expect.placeType];
+    if (!accepted.includes(got.placeType)) fail('placeType', accepted.length === 1 ? accepted[0] : `one of ${show(accepted)}`, got.placeType);
   }
   for (const word of expect.categoryAvoids ?? []) {
     if (got.category.toLowerCase().includes(word.toLowerCase())) fail('category', `no "${word}" in it`, got.category);

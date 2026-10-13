@@ -213,7 +213,16 @@ export function filterAndRankByDuration(
   const quality = (c: RoutedCandidate) => (rankBy === 'best' ? qualityScore(c.rating, c.userRatingCount) : 0);
   return routed
     .filter((c) => (maxMinutes === null || c.durationMinutes <= maxMinutes) && requirementMatch(c, requirements) !== 'no')
-    .sort((a, b) => matchTier(a, requirements) - matchTier(b, requirements) || quality(b) - quality(a) || a.durationMinutes - b.durationMinutes)
+    .sort(
+      (a, b) =>
+        matchTier(a, requirements) - matchTier(b, requirements) ||
+        quality(b) - quality(a) ||
+        a.durationMinutes - b.durationMinutes ||
+        // Travel time is whole minutes, so places often tie — and with more ties than rows, which ones are
+        // shown would be arbitrary. Between equally close places the better-known one comes first: a
+        // McDonald's with 3,600 reviews over a grill with none.
+        (b.userRatingCount ?? 0) - (a.userRatingCount ?? 0)
+    )
     .slice(0, limit);
 }
 
@@ -368,4 +377,32 @@ export function withArrivalHours<T extends RoutedCandidate>(candidate: T, depart
     closesInMinutes: remaining !== null && remaining <= CLOSING_SOON_MINUTES ? remaining : undefined,
     todayHoursText: hoursText,
   };
+}
+
+// --- Candidate Sources ---
+// A search can gather its candidates two ways — by the words in the category, and by Google's type for the kind
+// of place (see nearbySearch.ts) — and the same place often turns up in both. This keeps one copy of each, the
+// first seen, so the distance pruning and ranking after it never count a place twice.
+export function mergeCandidates(...lists: NearbyCandidate[][]): NearbyCandidate[] {
+  const seen = new Set<string>();
+  const merged: NearbyCandidate[] = [];
+  for (const list of lists) {
+    for (const candidate of list) {
+      if (seen.has(candidate.id)) continue;
+      seen.add(candidate.id);
+      merged.push(candidate);
+    }
+  }
+  return merged;
+}
+
+// The Places types to search for a kind of place. A person asking for "coffee" or "a cafe" means both, but
+// Google files a place under one or the other.
+const EQUIVALENT_PLACE_TYPES: Record<string, string[]> = {
+  cafe: ['cafe', 'coffee_shop'],
+  coffee_shop: ['coffee_shop', 'cafe'],
+};
+
+export function placeTypesFor(placeType: string): string[] {
+  return EQUIVALENT_PLACE_TYPES[placeType] ?? [placeType];
 }

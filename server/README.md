@@ -7,7 +7,7 @@ A three-endpoint Cloudflare Worker behind the app's "Find Nearby" chat feature:
   screen, or an **action** on one of them ("take me to the second one"). For a search it returns
   structured intent: category, a stated time budget, travel modes, whether it means the app's saved
   home address, a saved place by name ("near work"), where the user's planned trip ends ("near my
-  stop"), a named reference location, a target day/hour/minute, closest or best rated, cheap /
+  stop"), a named reference location, a target day/hour/minute, Google's own place type for the kind of place asked for (`hamburger_restaurant` for "burger place"; `none` for a brand or a shop name), closest or best rated, cheap /
   vegetarian / outdoor-seating asks, and — when the request is too vague to act on — a clarifying
   question to ask back. Besides `text` it accepts three optional pieces of context, each validated
   and dropped if malformed: `previousIntent` (so "actually walking only" reads as a refinement),

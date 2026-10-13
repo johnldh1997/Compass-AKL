@@ -12,6 +12,8 @@ import {
   withArrivalHours,
   qualityScore,
   departureForRouting,
+  mergeCandidates,
+  placeTypesFor,
   requirementMatch,
   priceLevelFromPlaces,
   selectCandidatesForRouting,
@@ -398,4 +400,46 @@ test('departureForRouting: a genuinely future time is kept', () => {
 
 test('departureForRouting: no stated time stays no time', () => {
   assert.equal(departureForRouting(null), null);
+});
+
+// --- Candidate Sources ---
+test('mergeCandidates: a place found both ways is kept once, the first copy', () => {
+  const byWords = [place('barrel', 206, { rating: 4.0 }), place('burgerfuel', 332)];
+  const byType = [place('mcdonalds', 237), place('burgerfuel', 332, { rating: 4.5 })];
+  const merged = mergeCandidates(byWords, byType);
+  assert.deepEqual(merged.map((c) => c.id), ['barrel', 'burgerfuel', 'mcdonalds']);
+  assert.equal(merged[1].rating, undefined);
+});
+
+test('mergeCandidates: an empty list on either side leaves the other as it was', () => {
+  const list = [place('a', 100), place('b', 200)];
+  assert.deepEqual(mergeCandidates(list, []), list);
+  assert.deepEqual(mergeCandidates([], list), list);
+  assert.deepEqual(mergeCandidates(), []);
+});
+
+test('placeTypesFor: coffee and cafe mean both; any other type is just itself', () => {
+  assert.deepEqual(placeTypesFor('coffee_shop'), ['coffee_shop', 'cafe']);
+  assert.deepEqual(placeTypesFor('cafe'), ['cafe', 'coffee_shop']);
+  assert.deepEqual(placeTypesFor('hamburger_restaurant'), ['hamburger_restaurant']);
+});
+
+test('filterAndRankByDuration: equally close places are ordered by how well known they are', () => {
+  const routed: RoutedCandidate[] = [
+    { ...place('unreviewed', 209), straightLineMeters: 209, durationMinutes: 4, mode: 'WALK' },
+    { ...place('few', 206, { userRatingCount: 132 }), straightLineMeters: 206, durationMinutes: 4, mode: 'WALK' },
+    { ...place('chain', 237, { userRatingCount: 3625 }), straightLineMeters: 237, durationMinutes: 4, mode: 'WALK' },
+    { ...place('nearer', 100), straightLineMeters: 100, durationMinutes: 2, mode: 'WALK' },
+  ];
+  assert.deepEqual(filterAndRankByDuration(routed, null).map((c) => c.id), ['nearer', 'chain', 'few', 'unreviewed']);
+  // With room for only two, the well-known place gets the second row, not the unreviewed one.
+  assert.deepEqual(filterAndRankByDuration(routed, null, 2).map((c) => c.id), ['nearer', 'chain']);
+});
+
+test('filterAndRankByDuration: being better known never beats being closer', () => {
+  const routed: RoutedCandidate[] = [
+    { ...place('far-famous', 900, { userRatingCount: 9000 }), straightLineMeters: 900, durationMinutes: 11, mode: 'WALK' },
+    { ...place('near-obscure', 300), straightLineMeters: 300, durationMinutes: 4, mode: 'WALK' },
+  ];
+  assert.deepEqual(filterAndRankByDuration(routed, null).map((c) => c.id), ['near-obscure', 'far-famous']);
 });

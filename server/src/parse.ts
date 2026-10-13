@@ -12,7 +12,20 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 
-export const TARGET_DAYS = ['today', 'tomorrow', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+// Google Places place types a search can be anchored to (all checked against the live Places API). Offering
+// the model a closed list means it can only name a type Google accepts. See placeType in the schema below.
+export const PLACE_TYPES = [
+  'american_restaurant', 'bakery', 'bar', 'barbecue_restaurant', 'breakfast_restaurant', 'brunch_restaurant',
+  'cafe', 'chinese_restaurant', 'coffee_shop', 'dessert_shop', 'fast_food_restaurant', 'french_restaurant',
+  'greek_restaurant', 'hamburger_restaurant', 'ice_cream_shop', 'indian_restaurant', 'italian_restaurant',
+  'japanese_restaurant', 'korean_restaurant', 'mexican_restaurant', 'middle_eastern_restaurant', 'pizza_restaurant',
+  'ramen_restaurant', 'sandwich_shop', 'seafood_restaurant', 'steak_house', 'sushi_restaurant', 'thai_restaurant',
+  'turkish_restaurant', 'vegan_restaurant', 'vegetarian_restaurant', 'vietnamese_restaurant', 'pharmacy', 'supermarket',
+  'convenience_store', 'gym', 'atm', 'bank', 'gas_station', 'park', 'library', 'museum', 'shopping_mall', 'book_store',
+  'liquor_store', 'post_office', 'tourist_attraction',
+] as const;
+
+export const TARGET_DAYS =['today', 'tomorrow', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
 export const NearbyQuerySchema = z.object({
   // First on purpose: the model fills fields in order, so it decides what kind of message this is
@@ -26,6 +39,11 @@ export const NearbyQuerySchema = z.object({
     .string()
     .describe(
       "A short search phrase for Google Places, e.g. 'Japanese restaurant' or 'coffee shop'. Empty string if no category is identifiable."
+    ),
+  placeType: z
+    .enum(['none', ...PLACE_TYPES])
+    .describe(
+      "When what they want is a KIND of place that Google files under one of these types, that type — 'burger place' is hamburger_restaurant (Google files McDonald's, Burger King and Carl's Jr there too), 'pizza' is pizza_restaurant, 'ramen' is ramen_restaurant, 'coffee' is coffee_shop, 'chemist' is pharmacy. 'none' for a specific brand or shop name ('McDonald's', 'Starbucks', 'yogost', 'gong cha'), a dish or specialty with no type of its own, or anything not listed — those are found by name through the category phrase instead."
     ),
   maxMinutes: z
     .number()
@@ -179,6 +197,11 @@ requirement (vegetarian, vegan) is itself specific enough to search ("vegetarian
 only a generic word like "lunch" or "food" beside it, so "cheap vegetarian lunch" is confident — but
 "cheap" or "best" on its own, with no food or place at all, is still a missing category.
 
+placeType travels with category: it names Google's own type for the kind of place being asked for, so the app
+can ask Google for everything filed under it ("burger place" finds McDonald's and Carl's Jr as well as shops
+with "burger" in their name). Only use it for a kind of place; a brand or a specific shop stays a name in the
+category with placeType 'none'. A refinement that keeps the previous category keeps its placeType too.
+
 Besides searching, a message can be about the results already on screen. They are given to you as
 "Results currently shown to the user", a numbered list. Decide messageKind:
 - "question": asks something about those results — "which is best rated?", "is the first one vegetarian?",
@@ -246,6 +269,7 @@ export const PreviousIntentSchema = NearbyQuerySchema.omit({
   actionType: true,
   actionTargetIndex: true,
 }).extend({
+  placeType: NearbyQuerySchema.shape.placeType.default('none'),
   savedPlaceLabel: z.string().default(''),
   useJourneyDestination: z.boolean().default(false),
   rankBy: NearbyQuerySchema.shape.rankBy.default('nearest'),

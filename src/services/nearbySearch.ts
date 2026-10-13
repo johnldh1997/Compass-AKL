@@ -14,6 +14,8 @@ import {
   departureForRouting,
   filterAndRankByDuration,
   isOpenDuring,
+  mergeCandidates,
+  placeTypesFor,
   priceLevelFromPlaces,
   resolveTargetDateTime,
   selectCandidatesForRouting,
@@ -31,10 +33,15 @@ import {
 } from './nearbyRanking';
 
 const PLACES_TEXT_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
+const PLACES_NEARBY_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchNearby';
 
 export interface NearbySearchIntent {
   // Free text handed straight to Google's Places Text Search — e.g. "Japanese restaurant".
   category: string;
+  // Google's own type for the kind of place asked for ("hamburger_restaurant"), or 'none' for a brand or a
+  // specific shop. When set, places filed under it are searched for as well as places matching the words —
+  // see searchNearby. Optional so an older Worker, which doesn't send it, still works.
+  placeType?: string;
   // Null means the user stated no time/distance limit at all (e.g. "closest X") — the search
   // then has nothing to filter against, only to rank by, and searches a wider radius since
   // there's no duration-based reasoning to justify a tight one.
@@ -233,30 +240,67 @@ interface PlacesTextSearchResponse {
   }[];
 }
 
+// Every Places search asks for the same fields, so a place found by words and the same place found by type
+// look identical and can be merged (see mergeCandidates).
+const PLACES_FIELD_MASK =
+  'places.id,places.displayName,places.location,places.regularOpeningHours,places.currentOpeningHours,places.rating,places.userRatingCount,places.editorialSummary,places.googleMapsUri,places.priceLevel,places.servesVegetarianFood,places.outdoorSeating';
+
+async function postPlaces(url: string, body: unknown, failureLabel: string): Promise<PlacesTextSearchResponse> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': getApiKey(), 'X-Goog-FieldMask': PLACES_FIELD_MASK },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`${failureLabel} error ${response.status}: ${await response.text()}`);
+  }
+  return response.json();
+}
+
+// By the words in the category ("burger restaurant"). Google ranks these by relevance, so it favours places
+// whose name or reviews match the words — fine for "yogost" or "Barrel N Burger", but a chain like McDonald's
+// has no "burger" in its name and never makes the 20 (see searchNearbyPlacesByType for that).
 async function textSearchPlaces(
   category: string,
   near: { lat: number; lon: number },
   radiusMeters: number
 ): Promise<NearbyCandidate[]> {
-  const response = await fetch(PLACES_TEXT_SEARCH_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': getApiKey(),
-      'X-Goog-FieldMask':
-        'places.id,places.displayName,places.location,places.regularOpeningHours,places.currentOpeningHours,places.rating,places.userRatingCount,places.editorialSummary,places.googleMapsUri,places.priceLevel,places.servesVegetarianFood,places.outdoorSeating',
-    },
-    body: JSON.stringify({
+  const data = await postPlaces(
+    PLACES_TEXT_SEARCH_URL,
+    {
       textQuery: category,
       locationBias: { circle: { center: { latitude: near.lat, longitude: near.lon }, radius: radiusMeters } },
       maxResultCount: 20,
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(`Places text search error ${response.status}: ${await response.text()}`);
-  }
-  const data: PlacesTextSearchResponse = await response.json();
-  return (data.places ?? [])
+    },
+    'Places text search'
+  );
+  return toCandidates(data.places);
+}
+
+// By Google's own type for the kind of place ("hamburger_restaurant"): everything Google files under it,
+// whatever it's called — which is how McDonald's, Burger King and Carl's Jr turn up for "burger place". Ranked
+// by distance for a "closest" search and by popularity for a "best" one, so the 20 are the right 20.
+async function searchNearbyPlacesByType(
+  placeType: string,
+  near: { lat: number; lon: number },
+  radiusMeters: number,
+  rankBy: RankBy
+): Promise<NearbyCandidate[]> {
+  const data = await postPlaces(
+    PLACES_NEARBY_SEARCH_URL,
+    {
+      includedTypes: placeTypesFor(placeType),
+      rankPreference: rankBy === 'best' ? 'POPULARITY' : 'DISTANCE',
+      maxResultCount: 20,
+      locationRestriction: { circle: { center: { latitude: near.lat, longitude: near.lon }, radius: radiusMeters } },
+    },
+    'Places nearby search'
+  );
+  return toCandidates(data.places);
+}
+
+function toCandidates(places: PlacesTextSearchResponse['places']): NearbyCandidate[] {
+  return (places ?? [])
     .filter((p) => p.id && p.displayName?.text && p.location?.latitude != null && p.location?.longitude != null)
     .map((p) => {
       const hours = p.currentOpeningHours ?? p.regularOpeningHours;
@@ -425,7 +469,20 @@ export async function searchNearby(
   // closest. "Best X" with no limit can't do the same — the best ramen in the whole region isn't a
   // useful answer to "near me" — so it stays within the ordinary radius.
   const searchRadius = intent.maxMinutes === null && rankBy === 'nearest' ? UNBOUNDED_PRUNE_RADIUS_METERS : PRUNE_RADIUS_METERS;
-  const places = await textSearchPlaces(intent.category, origin, searchRadius);
+  // The words and the type are searched together, because each finds what the other misses: the words catch a
+  // shop with the right name but a loose Google type, the type catches a chain whose name never says what it
+  // sells. The type search is a bonus — if it fails, the search carries on with the words alone.
+  const placeType = intent.placeType && intent.placeType !== 'none' ? intent.placeType : null;
+  const [byWords, byType] = await Promise.all([
+    textSearchPlaces(intent.category, origin, searchRadius),
+    placeType
+      ? searchNearbyPlacesByType(placeType, origin, searchRadius, rankBy).catch((err) => {
+          console.error('Nearby search: type search failed, using the words alone', err);
+          return [] as NearbyCandidate[];
+        })
+      : Promise.resolve([] as NearbyCandidate[]),
+  ]);
+  const places = mergeCandidates(byWords, byType);
 
   // The travel time isn't known yet, so this first pass is deliberately loose: it only drops a
   // place that is closed for the whole of the longest trip that could still qualify. The exact
