@@ -1,6 +1,7 @@
 # Nearby Search Query Proxy
 
-A three-endpoint Cloudflare Worker behind the app's "Find Nearby" chat feature:
+A Cloudflare Worker that holds the app's secrets and makes the calls that need them. The Find Nearby chat
+uses three model endpoints, and every Google Places and Routes call the app makes goes through five more:
 
 - `POST /parse-nearby` — reads a chat message ("European food near Britomart tomorrow at 5pm", in
   English or Korean) and says what it is: a **search**, a **question** about the results already on
@@ -24,7 +25,17 @@ A three-endpoint Cloudflare Worker behind the app's "Find Nearby" chat feature:
   turns in, a one-to-three sentence answer out, from that data only. A detail that isn't listed is
   "not known here", never a guess.
 
-No endpoint ever picks a place, a route, or a travel time itself, and none computes an actual date
+- `POST /google/autocomplete`, `/google/search-text`, `/google/search-nearby`, `/google/place-location`,
+  `/google/route` — the app's Google Places and Routes calls, made from here so the key that can do them
+  never ships in the app (`src/google.ts`). This is a narrow door, not a pass-through: each endpoint takes
+  only the few fields the app sends (validated, with caps on text length, radius and result count), builds
+  the Google request itself, and fixes the field mask — so a caller can't ask for a pricier Google tier than
+  the app does, can't reach a Google endpoint that isn't listed, and can't smuggle a path into a place id.
+  `route` takes a *profile* (`journey-transit`, `journey-walk`, `candidate-walk`, `candidate-transit`), each
+  with its own travel mode and field mask. Google's error text is never passed on (it can name the key's
+  project and settings) — only the status. `src/google.spec.ts` tests what may reach Google (`npm test`).
+
+No model endpoint ever picks a place, a route, or a travel time itself, and none computes an actual date
 — those come from real Google Places/Routes data and pure date-math, both handled client-side in
 `../src/services/nearbySearch.ts`, `nearbyRanking.ts` and `nearbyConversation.ts`. Code layout:
 `src/parse.ts` (the message-reading prompt and schema), `src/explain.ts` (explain + answer),
@@ -43,7 +54,7 @@ lives.
 ```bash
 npm install
 cp .dev.vars.example .dev.vars
-# edit .dev.vars and set your own ANTHROPIC_API_KEY
+# edit .dev.vars and set ANTHROPIC_API_KEY and GOOGLE_API_KEY (Places API (New) + Routes API only)
 npm run dev
 ```
 
@@ -85,6 +96,7 @@ checks the fields it lists under `expect`.
 ```bash
 npx wrangler login
 npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler secret put GOOGLE_API_KEY
 npm run deploy
 ```
 
@@ -94,7 +106,9 @@ npm run deploy
   per-install id in `X-Install-Id`; a request with a well-formed one is counted against that install
   (`INSTALL_LIMITER`, 16/min) and, at a looser ceiling, its IP (`IP_LIMITER`, 50/min) so a shared network
   isn't one caller. One without is counted against its IP alone (`ANON_LIMITER`, 8/min), so leaving the
-  header off buys a worse limit, not a better one. The id is not a secret — a script can mint fresh ones —
+  header off buys a worse limit, not a better one. The Google endpoints get their own three limiters
+  (`GOOGLE_*`, 60 / 100 / 20 a minute) because one Find Nearby search makes about ten Google calls and
+  autocomplete fires as you type, so they'd otherwise starve the model endpoints' much smaller allowance. The id is not a secret — a script can mint fresh ones —
   and these are Cloudflare Rate Limiting bindings, which are per location and eventually consistent (a
   burst of 26 requests let 17 through, not exactly 16). They blunt bursts; they don't meter. The hard
   backstop on spend is the cap on the Anthropic key. Bodies over 32,000 characters get a 413 before any

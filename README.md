@@ -19,9 +19,9 @@ The official app buries notification settings behind several taps and sends recu
 
 ## Features
 
-- **Live map** — every bus, train, and ferry currently running, updating in real time, with mode-specific markers that point the way each vehicle is heading. Tap a vehicle for its next stop, delay status, and its route drawn on the map.
+- **Live map** — every bus, train, and ferry currently running, updating in real time, with mode-specific markers that point the way each vehicle is heading. Tap a vehicle for its next stop, delay status, and its route drawn on the map. The camera follows your location while the app is open and on screen (the locate button shows an arrow while it is following), stops when you drag the map away, and jumps back to you whenever you return to the app.
 - **Journey planning** — multiple route options via Google's Routes API, each with duration, line badges, and walking time. Departure time is adjustable via a custom scrollable date/time picker, and From/To stay editable on the results page itself.
-- **Live journey tracking** — once you start a route, your position is matched to the correct step in real time (GPS-based, with a scheduled-time fallback), the map re-centers automatically, and a persistent notification keeps tracking even if the app is closed or the phone is locked. Each leg's own stop list is shown top to bottom, with the stop you're at and the direction of travel highlighted live — stops already passed fold behind a tap-to-expand summary instead of disappearing.
+- **Live journey tracking** — once you start a route, your position is matched to the correct step in real time (GPS-based, with a scheduled-time fallback), the map follows you (turning to face the way you're walking on a walking leg, so a left turn on the route is a turn to the left of the screen), and a persistent notification keeps tracking even if the app is closed or the phone is locked. Each leg's own stop list is shown top to bottom, with the stop you're at and the direction of travel highlighted live — stops already passed fold behind a tap-to-expand summary instead of disappearing. **The app works out which live bus you're riding** and, from then on, shows just that bus at your own position ("You're on this bus", with its next stop and delay) and hides the others — they were only there to show whether yours was coming. They return, with the blue dot, when you get off. See "Which bus are you on?" below.
 - **Boarding/alighting alerts** — a vibrating notification fires when your vehicle has just arrived at the stop before yours, then again right as you reach your own stop — driven by your live position along the route, not just a fixed time before the scheduled arrival.
 - **Stop details** — live + scheduled departures merged into one list, plus any active service alerts for that stop.
 - **Favourites** — save stops, places, or whole from→to trips for one-tap re-search.
@@ -30,6 +30,12 @@ The official app buries notification settings behind several taps and sends recu
 - **Experimental fare estimation** — AT publishes no machine-readable fare data, so this reverse-geocodes each leg and matches it against AT's public fare-zone boundaries, clearly flagged as an estimate.
 - **Dark mode** and **English/Korean localization**, throughout.
 - **Over-the-air updates** — JS-only changes ship instantly via EAS Update without needing a new app-store-style build.
+
+## Which bus are you on?
+
+AT's live feed says where every bus *was* when it last reported — not which one you're sitting in — and it runs behind (measured: median about 4 s, 90th percentile about 33 s, occasionally minutes). At bus speed that is hundreds of metres, so comparing a bus's reported position with *your position now* never matches. `src/services/boardedVehicle.ts` compares like with like instead: it keeps a trail of your last few minutes of GPS fixes, and asks where *you* were at the moment each bus of your line reported. A bus you're on was within about 60 m of you at its own timestamp, heading the way you were going. A match needs you to be moving like a vehicle (so standing beside a bus at a stop, or walking past one, doesn't count), and once made it holds through a stop and a few seconds of GPS drift, and ends when the bus is clearly elsewhere or leaves the feed for good.
+
+Two details found by running it against the real feed: the feed's `speed` field is in **km/h**, not the m/s the GTFS-realtime spec says (measured against how far ~550 buses actually moved between reports: ratio 0.26, a km/h conversion is 0.28); and the journey's GPS watcher has to keep reporting while you're stationary, or "no new fix" is indistinguishable from "no signal" and the app keeps believing you're on a bus that has driven away.
 
 ## Find Nearby — the AI chat
 
@@ -80,8 +86,8 @@ The model reads the message in step 1 and describes results in steps 2 and 6 —
 - **expo-notifications** — persistent + one-shot local notifications
 - **expo-sqlite** — on-device queries against a bundled, pre-built schedule database
 - **AsyncStorage** — local persistence (favourites, active journey, notification dedup)
-- Auckland Transport's GTFS + GTFS-Realtime APIs, Google Routes API + Places API (New)
-- **Cloudflare Workers + Anthropic API (Claude)** — a small three-endpoint proxy (`server/`): one reads a Find Nearby message and classifies it (a search, a question about the results on screen, or an action on one), turning a search into structured intent (Zod-validated structured output); the other two write the short reply, or the answer to a follow-up, from results the app already computed. The only place the Anthropic key lives
+- Auckland Transport's GTFS + GTFS-Realtime APIs, Google Routes API + Places API (New) (called through the Worker)
+- **Cloudflare Workers + Anthropic API (Claude)** — a small proxy (`server/`) with two jobs. For the chat: one endpoint reads a Find Nearby message and classifies it (a search, a question about the results on screen, or an action on one), turning a search into structured intent (Zod-validated structured output); two more write the short reply, or the answer to a follow-up, from results the app already computed. For Google: five narrow endpoints make every Places and Routes call on the app's behalf, each accepting only the few fields the app sends and fixing the field mask itself — so the Google key that can do Places and Routes never ships in the app, and a caller can't ask for a pricier tier than the app does. The only place the Anthropic key lives
 
 ## Notable engineering challenges
 
@@ -106,7 +112,7 @@ A few problems that took real digging to solve properly, condensed here — the 
 - **Route highlights, per-leg stop lists and scheduled departures depend on a bundled timetable snapshot.** AT re-issues its trip IDs whenever it publishes a new schedule, so the snapshot can fall out of step with the live feed well before its stated end date. This bit for real: a check of every live vehicle against the bundled database found only 35% of their trips (so only 35% could show a route), until it was rebuilt from a fresh feed (100%). Rebuilding is `scripts/build-gtfs-db.py` on AT's current `gtfs.zip` — worth repeating whenever AT publishes a new feed. The hamburger menu warns when the feed is close to expiring, but that date alone doesn't catch this drift.
 - **Fare estimates are approximate**, not official pricing — see above.
 - **Automated tests cover only the Find Nearby logic** — the ranking in `src/services/nearbyRanking.ts` (run via `npm test`: distance pruning, best-rating scoring, price/vegetarian/outdoor matching, date resolution and opening hours at arrival time) plus `src/services/nearbyConversation.ts` (what the model is shown, action targets, saved-place matching, where a trip ends) and a model eval for the parser (`server/eval`), since that logic is pure and easy to get subtly wrong. Everything else was verified through real-API testing (with live keys, not mocks) and manual device testing, not unit/integration tests.
-- **Find Nearby is optional and has its own moving parts.** It needs the `server/` Worker deployed and an Anthropic API key (the rest of the app works without either), and every search costs two model calls — one to parse, one to write the reply (a follow-up question is two as well: read, then answer). The Worker's rate limits (see Abuse protection above) blunt bursts but aren't exact, and there is no app attestation, so the cap on the Anthropic key is what actually bounds spend.
+- **The Worker is a dependency.** The app needs the `server/` Worker deployed, with an Anthropic key and a Google server key, for journey planning, place search and Find Nearby (the live map, departures, favourites and alerts work without it), and every search costs two model calls — one to parse, one to write the reply (a follow-up question is two as well: read, then answer). The Worker's rate limits (see Abuse protection above) blunt bursts but aren't exact, and there is no app attestation, so the cap on the Anthropic key is what actually bounds spend.
 - **Find Nearby only knows what Google Places knows.** That includes how loosely Google tags places: a kebab shop can be filed under "hamburger restaurant" and will show up for a burger search. Ratings, hours and summaries come straight from Places, so there are no menus (it links out to Google Maps instead), and a place with no listed hours is shown rather than filtered out. Price, vegetarian and outdoor-seating details are missing for many places, so those filters can only confirm what Google knows. Only 8 candidates (the closest, or for "best" the highest-scoring) are routed and 6 are shown, to keep API cost bounded.
 - **Saved places only work once you've named them.** "Near work" matches a favourite place you've given that name (the tag icon on its row in Favourites); there is no automatic guess at which favourite is your workplace, so an unnamed one gets a reply saying how to add it.
 - **"Near my stop" needs a trip.** It uses the stop the last transit leg gets off at, from the route preview's "Find places near your stop" button or a journey that's been started; a walking-only route has no stop, and with no trip the chat says so.
@@ -120,28 +126,30 @@ A few problems that took real digging to solve properly, condensed here — the 
 2. Subscribe to a product from the **Products** page (free tier: 600 calls/minute, 35,000 calls/week).
 3. Copy your subscription key.
 
-### 2. Get a Google API key
+### 2. Get two Google API keys
 
-AT's API has no route-planning, address-lookup, or map-tile endpoint, so two Google APIs cover that:
+AT's API has no route-planning, address-lookup, or map-tile endpoint, so Google covers that. Create a project in the [Google Cloud Console](https://console.cloud.google.com/), enable billing (required even for the free monthly allowance), and make **two** keys under **APIs & Services → Credentials** — an app can't keep a secret, so they're kept apart on purpose:
 
-1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/) and enable billing (required even for the free monthly credit).
-2. Enable the **Routes API**, **Places API (New)**, and **Maps SDK for Android**.
-3. Create an API key under **APIs & Services → Credentials**.
+| Key | Enable (and restrict it to) | Lives in | Why |
+| --- | --- | --- | --- |
+| **Maps key** | **Maps SDK for Android** only | the app (`EXPO_PUBLIC_GOOGLE_DIRECTIONS_KEY`, baked into the build for the map) | Anyone can unpack an APK and read this one, so it can do nothing except draw a map. Also restrict it to the app's package name and signing SHA-1. |
+| **Server key** | **Places API (New)** and **Routes API** only | the Worker (`GOOGLE_API_KEY`, step 3) | Never shipped. Every Places and Routes call goes through the Worker. |
 
-Both APIs share the standard $200/month free credit; autocomplete is free, each "Get Directions" call costs a small fraction of a cent. For personal use this should stay at $0, but it's pay-as-you-go past the free credit.
+Places and Routes calls bill per request (see [Google's pricing](https://developers.google.com/maps/billing-and-pricing/pricing)); for personal use this should stay at or near $0, but it's pay-as-you-go past the free allowances, so set a budget alert and per-API quotas.
 
-### 3. (Optional) Deploy the Find Nearby proxy
+### 3. Deploy the Worker
 
-Skip this and everything except Find Nearby still works. The chat feature needs a small Cloudflare Worker (`server/`) because an Anthropic API key can't safely live inside a mobile app bundle:
+The app talks to a small Cloudflare Worker (`server/`) for everything that needs a secret: the Find Nearby chat (an Anthropic API key) and every Google Places and Routes call (the server key from step 2). A mobile app bundle can't hold a secret safely, so neither key is in the app. Without the Worker, journey planning, place search and Find Nearby all stop working; the live map, departures and favourites don't need it.
 
-1. Create an API key in the [Anthropic Console](https://console.anthropic.com/).
-2. Deploy the Worker (free Cloudflare account is enough):
+1. Create an API key in the [Anthropic Console](https://console.anthropic.com/) and set a monthly spend limit on its Billing page.
+2. Deploy the Worker (a free Cloudflare account is enough):
 
 ```bash
 cd server
 npm install
 npx wrangler login
 npx wrangler secret put ANTHROPIC_API_KEY   # paste the key at the hidden prompt
+npx wrangler secret put GOOGLE_API_KEY      # the Places + Routes "server key" from step 2
 npm run deploy                              # prints https://<name>.<account>.workers.dev
 cd ..
 ```
@@ -152,7 +160,7 @@ Keep the printed URL — it's `EXPO_PUBLIC_NEARBY_PROXY_URL` in the next step. L
 
 ```bash
 cp .env.example .env
-# fill in the keys in .env (the proxy URL is only needed if you did step 3)
+# fill in the keys in .env: the AT key, the Maps key (step 2) and the Worker URL (step 3)
 npm install
 ```
 
@@ -161,7 +169,7 @@ This app needs a **custom development build**, not the plain Expo Go app (`react
 ```bash
 npx eas login
 npx eas env:create --name EXPO_PUBLIC_AT_API_KEY --value your-at-key --scope project --visibility sensitive --environment development preview production
-npx eas env:create --name EXPO_PUBLIC_GOOGLE_DIRECTIONS_KEY --value your-google-key --scope project --visibility sensitive --environment development preview production
+npx eas env:create --name EXPO_PUBLIC_GOOGLE_DIRECTIONS_KEY --value your-maps-key --scope project --visibility sensitive --environment development preview production
 npx eas env:create --name EXPO_PUBLIC_NEARBY_PROXY_URL --value your-deployed-worker-url --scope project --visibility plaintext --environment development preview production
 npx eas build --profile development --platform android
 ```
@@ -183,7 +191,8 @@ src/
                  picker, side menu, animated buttons, etc.
   context/       Favourites (stops/places/trips), recents, home address, read/dismissed alerts,
                  settings, theme — AsyncStorage-backed
-  hooks/         useCountdown (a synced "updates in Ns" countdown shared by live-vehicle cards),
+  hooks/         useFollowCamera / useUserLocation / useAppActive (follow-me camera), useBoardedVehicle, useWalkHeading,
+                 useCountdown (a synced "updates in Ns" countdown shared by live-vehicle cards),
                  useLegStops (the stops each leg of a route passes through)
   i18n/          Translation table + hook (also usable outside React, for the background task)
   screens/       Home, Favorites, AddFavorite, StopDetail, Settings, About, JourneyPlanner,
@@ -195,7 +204,8 @@ src/
     realtime.ts          Live departures (GTFS-realtime trip updates), cached and batched
     vehicles.ts          Live vehicle positions for the map (GTFS-realtime vehicle locations)
     alerts.ts            Active service/disruption alerts, filtered by stop or route
-    directions.ts        Google Places autocomplete + Routes API transit directions
+    directions.ts        Place autocomplete + transit/walking directions (via the Worker)
+    proxyClient.ts       The one way the app reaches the Worker: install id header, abortable timeout
     journeyTracking.ts   GPS-position-based step matching, with schedule-time fallback
     routeStops.ts        Every stop a transit leg passes through (cached), from the bundled timetable
     legProgress.ts       How far along a leg a rider is in terms of its stops (pure, no Expo imports)
@@ -206,6 +216,10 @@ src/
     fareZones.ts         Experimental fare estimation from reverse-geocoded fare zones
     legColors.ts         Shared per-leg color palette (map + step list use the same colors)
     location.ts          expo-location wrapper
+    boardedVehicle.ts     Pure, unit-tested: which live bus you're on, from your GPS trail vs each bus's report time
+    walkHeading.ts        Pure: which way the map should face on a walking leg (path look-ahead, eased)
+    cameraFollow.ts       Pure: whether a follow-me camera move is worth making, and what it should be
+    geo.ts                Shared distance / bearing / angle helpers for the pure modules above
     nearbyTurn.ts         One Find Nearby chat turn end to end: read the message, then answer a
                           question, act on a result, or search and rank; reports back by callback
     nearbySearch.ts       Find Nearby data layer: calls the server/ proxy, geocodes a named place,
