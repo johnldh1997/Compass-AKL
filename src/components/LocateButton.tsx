@@ -7,9 +7,12 @@ import { useTranslation } from '../i18n/useTranslation';
 interface Props {
   onPress: () => void;
   style?: object;
+  // True while the map is following you: the icon fills in, so it's clear whether the map will move with you
+  // or has been left where you dragged it (press to follow again).
+  following?: boolean;
 }
 
-export default function LocateButton({ onPress, style }: Props) {
+export default function LocateButton({ onPress, style, following = false }: Props) {
   const colors = useThemeColors();
   const t = useTranslation();
   return (
@@ -20,7 +23,7 @@ export default function LocateButton({ onPress, style }: Props) {
       accessibilityRole="button"
       accessibilityLabel={t('common.centerOnMyLocation')}
     >
-      <Ionicons name="locate" size={22} color={colors.primary} />
+      <Ionicons name={following ? 'navigate' : 'locate'} size={22} color={colors.primary} />
     </Pressable>
   );
 }

@@ -1,8 +1,12 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import MapView, { Polyline, Region } from 'react-native-maps';
+import { useAppActive } from '../hooks/useAppActive';
 import { useCountdown } from '../hooks/useCountdown';
+import { useFollowCamera } from '../hooks/useFollowCamera';
+import { useUserLocation } from '../hooks/useUserLocation';
 import { getStopById, getStopsInBounds, getTripHeadsign } from '../services/gtfs';
 import { getShapeForTrip } from '../services/gtfsStatic';
 import { getCurrentCoordinates, getFastCoordinates } from '../services/location';
@@ -185,6 +189,16 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
   const { showLiveVehicles, vehicleModeFilters } = useSettings();
   const t = useTranslation();
 
+  // --- Follow My Location ---
+  // The camera follows you while this map is on screen and the app is in the foreground (so the GPS isn't held
+  // open for a hidden map or a pocketed phone), until you take over by dragging the map. Pressing the locate
+  // button, or returning to the app after leaving it, starts following again and jumps back to you.
+  const focused = useIsFocused();
+  const { active: appActive } = useAppActive();
+  const tracking = focused && appActive;
+  const userLocation = useUserLocation(tracking);
+  const follow = useFollowCamera({ mapRef, mapReady, enabled: tracking, position: userLocation });
+
   useEffect(() => {
     let done = false;
 
@@ -234,6 +248,7 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
     // initial GPS-based centering put it.
     if (!mapRef.current || !mapReady) return;
     lastStopFocusRequestRef.current = focusStop.requestedAt;
+    follow.disengage();
     mapRef.current.animateToRegion(
       {
         latitude: focusStop.lat,
@@ -370,6 +385,7 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
 
   async function handleStopPress(stop: Stop, coordinate: { latitude: number; longitude: number }) {
     markerPressedRef.current = true;
+    follow.disengage();
     if (!mapRef.current) {
       onStopPress(stop);
       return;
@@ -398,6 +414,7 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
 
   async function handleVehiclePress(v: VehiclePosition) {
     markerPressedRef.current = true;
+    follow.disengage();
     if (!mapRef.current) {
       setSelectedId(v.vehicleId);
       return;
@@ -435,6 +452,7 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
   }
 
   async function handleLocate() {
+    follow.engage();
     const coords = await getCurrentCoordinates();
     if (coords) {
       mapRef.current?.animateToRegion(
@@ -461,6 +479,7 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
         initialRegion={initialRegion}
         onMapReady={() => setMapReady(true)}
         onRegionChangeComplete={handleRegionChange}
+        onPanDrag={follow.disengage}
         onPress={() => {
           if (markerPressedRef.current) {
             markerPressedRef.current = false;
@@ -526,7 +545,11 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
         ))}
       </MapView>
 
-      <LocateButton onPress={handleLocate} style={[styles.locateButton, { bottom: spacing.md + bottomInset }]} />
+      <LocateButton
+        onPress={handleLocate}
+        following={follow.following}
+        style={[styles.locateButton, { bottom: spacing.md + bottomInset }]}
+      />
 
       {selected && (
         <View style={[styles.infoCard, { bottom: spacing.sm + bottomInset }]}>

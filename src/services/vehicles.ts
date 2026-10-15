@@ -9,7 +9,11 @@ interface VehicleTripDescriptor {
 
 interface VehiclePositionData {
   trip?: VehicleTripDescriptor;
-  position: { latitude: number; longitude: number; bearing?: string | number };
+  // speed is in km/h, despite the GTFS-realtime spec saying m/s: comparing it with how far ~550 buses actually
+  // moved between two reports, the measured speed was 0.26x the reported one (a km/h-to-m/s factor is 0.28).
+  position: { latitude: number; longitude: number; bearing?: string | number; speed?: number };
+  // Seconds since epoch — when the vehicle reported the position above.
+  timestamp?: number | string;
   vehicle: { id: string };
 }
 
@@ -58,6 +62,8 @@ export async function getVehiclePositions(): Promise<VehiclePosition[]> {
               lat: v.position.latitude,
               lon: v.position.longitude,
               bearing: v.position.bearing !== undefined ? Number(v.position.bearing) : undefined,
+              ...(v.timestamp != null && Number.isFinite(Number(v.timestamp)) ? { timestampMs: Number(v.timestamp) * 1000 } : {}),
+              ...(typeof v.position.speed === 'number' ? { speedMps: v.position.speed / 3.6 } : {}),
               routeShortName: route?.shortName,
               mode: route?.mode ?? 'unknown',
             };

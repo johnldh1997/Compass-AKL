@@ -42,6 +42,12 @@ export interface VehiclePosition {
   lat: number;
   lon: number;
   bearing?: number;
+  // When the vehicle reported this position (ms since epoch, from the feed — not when the app fetched it) and
+  // how fast it was going (m/s). The feed's positions run seconds behind (median ~4 s, p90 ~33 s), which at bus
+  // speed is hundreds of metres — knowing the report time is what lets the app tell whether a bus is the one
+  // you're on (see services/boardedVehicle.ts).
+  timestampMs?: number;
+  speedMps?: number;
   routeShortName?: string;
   mode: TransportMode;
 }

@@ -13,6 +13,7 @@ import PlaceAutocompleteInput from '../components/PlaceAutocompleteInput';
 import RoutePreviewMap from '../components/RoutePreviewMap';
 import TripRow from '../components/TripRow';
 import { useFavoriteTrips } from '../context/FavoriteTripsContext';
+import { useBoardedVehicle } from '../hooks/useBoardedVehicle';
 import { useLegStops } from '../hooks/useLegStops';
 import { useRecentTrips } from '../context/RecentTripsContext';
 import { useSettings } from '../context/SettingsContext';
@@ -151,6 +152,12 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
   const [routeAlerts, setRouteAlerts] = useState<ServiceAlert[]>([]);
   const [fareEstimate, setFareEstimate] = useState<FareEstimate | null>(null);
   const [liveVehicles, setLiveVehicles] = useState<VehiclePosition[]>([]);
+  // Which way you're heading and how fast, from the phone's own GPS — drives which way the map faces on a walk
+  // and whether you're moving like a vehicle (see useBoardedVehicle).
+  const [currentMotion, setCurrentMotion] = useState<{ heading: number | null; speedMps: number | null }>({
+    heading: null,
+    speedMps: null,
+  });
   // When liveVehicles last actually refreshed — threaded down to RoutePreviewMap so its
   // selected-vehicle info card's "Updates in Ns" describes this exact poll (the one that
   // actually moves the marker on the map), not an independent, out-of-phase timer.
@@ -171,6 +178,17 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
   const { language } = useSettings();
   const isKorean = language === 'ko';
   const t = useTranslation();
+
+  // --- The Bus You're On ---
+  // While you're on a transit leg, work out which of the live buses on that line is carrying you; the map then
+  // shows only that one, at your own position. Waiting at the stop or walking matches nothing, so the other
+  // buses stay visible to show whether yours is coming.
+  const activeStep = screenState === 'active' ? journeyRoute?.steps[currentStepIndex] : undefined;
+  const boardedVehicle = useBoardedVehicle({
+    lineName: activeStep?.kind === 'transit' ? activeStep.lineName ?? null : null,
+    liveVehicles,
+    position: currentPosition ?? null,
+  });
 
   useEffect(() => {
     const { restoredFrom, restoredTo, restoredDepartureTime, autoSearch } = route.params ?? {};
@@ -387,11 +405,18 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
     // journeyNotification.ts for what happens when that permission is denied instead.
     startJourneyTracking(activeRoute.steps).catch(() => {});
 
+    // distanceInterval 0: a fix every few seconds even while you stand still. With a distance filter the watcher
+    // goes silent when you stop, and "no new fix" can't be told from "no signal" — which left the app believing
+    // you were still on a bus long after you'd got off and it had driven away (see useBoardedVehicle).
     locationSubscription.current = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 5_000, distanceInterval: 5 },
+      { accuracy: Location.Accuracy.High, timeInterval: 5_000, distanceInterval: 0 },
       (position) => {
         const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
         setCurrentPosition(coords);
+        setCurrentMotion({
+          heading: position.coords.heading != null && position.coords.heading >= 0 ? position.coords.heading : null,
+          speedMps: position.coords.speed != null && position.coords.speed >= 0 ? position.coords.speed : null,
+        });
 
         // A low-accuracy fix (e.g. a stale cell/wifi-based estimate right when tracking
         // starts, before a real GPS lock) can still land within the match threshold of
@@ -480,8 +505,9 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
   }
 
   if (screenState !== 'form' && journeyRoute) {
+    // "Wait N min for the 105" is the planned schedule's countdown; once you're sitting on a 105 it is wrong at best.
     const waitInfo =
-      screenState === 'active' ? getUpcomingWait(journeyRoute.steps, currentStepIndex, new Date()) : null;
+      screenState === 'active' && !boardedVehicle ? getUpcomingWait(journeyRoute.steps, currentStepIndex, new Date()) : null;
     // Where this trip gets off — what Find Nearby searches around ("dinner near my stop"). A walking-only
     // route has no stop, so there's nothing to offer.
     const tripStop = journeyStopFromRoute(journeyRoute);
@@ -498,6 +524,11 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
             liveVehicles={liveVehicles}
             liveVehiclesUpdatedAt={liveVehiclesUpdatedAt}
             lineColors={getLineColors(journeyRoute.steps, colors)}
+            followUser={screenState === 'active'}
+            currentStepIndex={screenState === 'active' ? currentStepIndex : undefined}
+            userHeading={currentMotion.heading}
+            userSpeedMps={currentMotion.speedMps}
+            boardedVehicle={boardedVehicle}
           />
           {screenState === 'preview' && (
             <AnimatedPressable style={styles.goButton} onPress={handleStartRoute}>

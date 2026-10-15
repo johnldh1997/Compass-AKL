@@ -49,6 +49,7 @@ export default function PlaceAutocompleteInput({
   const [selected, setSelected] = useState<JourneyEndpoint | null>(initialEndpoint ?? null);
   const sessionToken = useRef(createSessionToken());
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const modalInputRef = useRef<TextInput>(null);
 
   const { isFavorite, addPlace, removeByEndpoint } = useFavoritePlaces();
   const { places: recentPlaces, addRecent, removeRecent } = useRecentPlaces();
@@ -146,7 +147,16 @@ export default function PlaceAutocompleteInput({
         )}
       </View>
 
-      <Modal visible={modalOpen} animationType="slide" onRequestClose={() => setModalOpen(false)}>
+      <Modal
+        visible={modalOpen}
+        animationType="slide"
+        onRequestClose={() => setModalOpen(false)}
+        // --- Keyboard On First Tap ---
+        // `autoFocus` on a field inside a Modal focuses it (a cursor appears) but, on Android, the soft keyboard
+        // doesn't open — the modal's window isn't ready to receive it yet, so it took a second tap on the field.
+        // Focusing once the modal has actually finished appearing, after a beat for the slide-in, opens it.
+        onShow={() => setTimeout(() => modalInputRef.current?.focus(), 100)}
+      >
         <View style={[styles.modalContainer, { paddingTop: insets.top + spacing.sm }]}>
           <View style={styles.modalHeader}>
             <Pressable
@@ -158,7 +168,7 @@ export default function PlaceAutocompleteInput({
               <Ionicons name="chevron-back" size={24} color={colors.text} />
             </Pressable>
             <TextInput
-              autoFocus
+              ref={modalInputRef}
               style={styles.modalInput}
               placeholder={placeholder}
               placeholderTextColor={colors.textMuted}
