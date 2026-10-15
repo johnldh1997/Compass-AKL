@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import MapView, { Polyline, Region } from 'react-native-maps';
 import { useAppActive } from '../hooks/useAppActive';
 import { useCountdown } from '../hooks/useCountdown';
@@ -453,13 +453,15 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
 
   async function handleLocate() {
     follow.engage();
-    const coords = await getCurrentCoordinates();
-    if (coords) {
-      mapRef.current?.animateToRegion(
-        { ...coords, latitudeDelta: MY_LOCATION_ZOOM_DELTA, longitudeDelta: MY_LOCATION_ZOOM_DELTA },
-        500
-      );
+    const coords = await getCurrentCoordinates({ askToTurnOnLocation: true });
+    if (!coords) {
+      Alert.alert(t('map.locationUnavailableTitle'), t('map.locationUnavailableMessage'));
+      return;
     }
+    mapRef.current?.animateToRegion(
+      { ...coords, latitudeDelta: MY_LOCATION_ZOOM_DELTA, longitudeDelta: MY_LOCATION_ZOOM_DELTA },
+      500
+    );
   }
 
   if (!initialRegion) {

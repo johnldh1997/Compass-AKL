@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFavoritePlaces } from '../context/FavoritePlacesContext';
 import { useHomeAddress } from '../context/HomeAddressContext';
@@ -87,6 +87,7 @@ export default function PlaceAutocompleteInput({
   async function handleUseCurrentLocation() {
     const endpoint = await getCurrentLocationEndpoint();
     if (endpoint) choose(endpoint);
+    else Alert.alert(t('map.locationUnavailableTitle'), t('map.locationUnavailableMessage'));
   }
 
   function handleClear() {

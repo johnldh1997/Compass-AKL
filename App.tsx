@@ -21,6 +21,7 @@ import { SettingsProvider } from './src/context/SettingsContext';
 import { ThemeProvider, useThemeColors, useThemeScheme } from './src/context/ThemeContext';
 import { useTranslation } from './src/i18n/useTranslation';
 import { loadActiveJourney } from './src/services/activeJourney';
+import { installErrorLog } from './src/services/errorLog';
 import AboutScreen from './src/screens/AboutScreen';
 import AddFavoriteScreen from './src/screens/AddFavoriteScreen';
 import AlertsScreen from './src/screens/AlertsScreen';
@@ -36,6 +37,9 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import StopDetailScreen from './src/screens/StopDetailScreen';
 import { darkColors, lightColors } from './src/theme';
 import { RootStackParamList } from './src/types';
+
+// Before anything renders, so an error during startup is recorded too (shown on the About screen).
+installErrorLog();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 // Module-level (not per-render) so the onReady callback below always has a stable ref to

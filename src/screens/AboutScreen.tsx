@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import React, { useMemo } from 'react';
+import * as Updates from 'expo-updates';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
+import { LoggedError, readLastError } from '../services/errorLog';
 import { radius, spacing, ThemeColors } from '../theme';
 
 const FEATURE_KEYS = [
@@ -22,6 +24,10 @@ export default function AboutScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const t = useTranslation();
+  const [lastError, setLastError] = useState<LoggedError | null>(null);
+  useEffect(() => {
+    readLastError().then(setLastError);
+  }, []);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -58,7 +64,28 @@ export default function AboutScreen() {
         ))}
       </View>
 
+      {/* --- Which Version Is This? ---
+          "Version" is the install number: it changes only when the app needs reinstalling, never for an update
+          that arrives over the air (see scripts/check-install-version.js). It is also part of the update runtime,
+          so a phone showing it is on an install that receives updates for that same number. The line below names
+          the update actually running, or says the built-in code is running because none has been downloaded. */}
       <Text style={styles.version}>{t('about.version', { value: Constants.expoConfig?.version ?? 'n/a' })}</Text>
+      <Text style={styles.versionHint}>{t('about.versionHint')}</Text>
+      <Text style={styles.updateInfo} selectable>
+        {Updates.isEmbeddedLaunch || !Updates.updateId
+          ? t('about.builtIn')
+          : t('about.update', {
+              id: Updates.updateId.slice(0, 8),
+              date: Updates.createdAt ? Updates.createdAt.toLocaleString() : '',
+            })}
+        {Updates.runtimeVersion ? `\n${t('about.runtime', { id: Updates.runtimeVersion.slice(0, 8) })}` : ''}
+      </Text>
+      {/* --- Last Crash --- The most recent uncaught error, kept by services/errorLog.ts, so a crash report can say why. */}
+      {lastError && (
+        <Text style={styles.lastError} selectable>
+          {`${t('about.lastError', { date: new Date(lastError.at).toLocaleString() })}\n${lastError.message}\n${lastError.stack}`}
+        </Text>
+      )}
     </ScrollView>
   );
 }
@@ -95,6 +122,9 @@ function createStyles(colors: ThemeColors) {
     },
     row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     rowText: { flex: 1, fontSize: 14, color: colors.text },
-    version: { textAlign: 'center', color: colors.textMuted, fontSize: 12, padding: spacing.lg },
+    version: { textAlign: 'center', color: colors.textMuted, fontSize: 12, paddingTop: spacing.lg },
+    versionHint: { textAlign: 'center', color: colors.textMuted, fontSize: 11, paddingTop: 2, paddingHorizontal: spacing.xl },
+    lastError: { color: colors.textMuted, fontSize: 10, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+    updateInfo: { textAlign: 'center', color: colors.textMuted, fontSize: 11, paddingTop: spacing.xs, paddingBottom: spacing.lg },
   });
 }

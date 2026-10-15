@@ -12,6 +12,7 @@ import { decodePolyline } from './directions';
 import { getCurrentStepIndex } from './journeyTracking';
 import { arcPositionMeters, computeLegProgress, LatLon } from './legProgress';
 import { getVehiclesForRoutes } from './liveVehicleMatch';
+import { ensureLocationPermission } from './location';
 import { getNextStopForTrip } from './realtime';
 import { getStopsAlongLeg } from './routeStops';
 import { Language, TransitStep } from '../types';
@@ -343,6 +344,17 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   );
 });
 
+// "Allow all the time" is asked for at most once per launch, and not at all when Android won't prompt again: asking
+// sends the user to a system settings page, which must not repeat each time a journey starts or is resumed.
+let askedForBackgroundAccess = false;
+async function hasBackgroundAccess(): Promise<boolean> {
+  const current = await Location.getBackgroundPermissionsAsync();
+  if (current.granted) return true;
+  if (askedForBackgroundAccess || !current.canAskAgain) return false;
+  askedForBackgroundAccess = true;
+  return (await Location.requestBackgroundPermissionsAsync()).granted;
+}
+
 // Posts the initial notification and — best-effort — starts background location delivery
 // so the notification keeps updating with the screen off. Background delivery requires
 // "Allow all the time" location access; if that's denied, the notification still gets
@@ -358,10 +370,9 @@ export async function startJourneyTracking(steps: TransitStep[]): Promise<void> 
     await updateJourneyNotification(steps);
   }
 
-  const foreground = await Location.requestForegroundPermissionsAsync();
-  if (foreground.status !== 'granted') return;
-  const background = await Location.requestBackgroundPermissionsAsync();
-  if (background.status !== 'granted') return;
+  // The journey screen has already asked for foreground access; this only reads it.
+  if (!(await ensureLocationPermission('never'))) return;
+  if (!(await hasBackgroundAccess())) return;
 
   const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME).catch(() => false);
   if (alreadyStarted) return;

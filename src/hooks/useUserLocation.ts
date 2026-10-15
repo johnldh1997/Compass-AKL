@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { LatLon } from '../services/geo';
+import { ensureLocationPermission } from '../services/location';
 
 export interface UserLocation extends LatLon {
   // Direction of travel in degrees (0 = north) and speed in m/s — null when the phone doesn't know them.
@@ -22,10 +23,10 @@ export function useUserLocation(enabled: boolean): UserLocation | null {
     let subscription: Location.LocationSubscription | null = null;
 
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted' || cancelled) return;
+      if (!(await ensureLocationPermission('once')) || cancelled) return;
       const sub = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Balanced, timeInterval: 3000, distanceInterval: 4 },
+        // No settings dialog: this starts by itself, and a declined dialog would just come back (see services/location.ts).
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 3000, distanceInterval: 4, mayShowUserSettingsDialog: false },
         (position) => {
           setLocation({
             latitude: position.coords.latitude,

@@ -182,6 +182,19 @@ npm start
 
 Open the installed app on your phone — it connects to the Metro server automatically, and most changes (screens, components, logic, styles) show up instantly via Fast Refresh. A rebuild is only needed again if you add a native dependency or change native config in `app.config.js`.
 
+### Version numbers: when does the phone need a reinstall?
+
+`version` in `app.config.js` is the **install number**. It changes only when phones need a fresh install, and stays the same for updates that arrive over the air (`eas update`). It shows under **About** in the app, with a note saying so.
+
+Expo only delivers an update to phones whose install has the same *runtime* (a fingerprint of everything native), and `version` is part of that fingerprint — so a phone on an older install never receives updates published for a newer one, however many it misses. `install-versions.json` records the runtime each version was built with, and one script keeps the two honest:
+
+```bash
+node scripts/check-install-version.js            # before every `eas update` — fails if native code/config changed without a version bump
+node scripts/check-install-version.js --record   # after bumping `version`, before `eas build`
+```
+
+To ship something that needs a reinstall: bump `version` (1.0.0 → 1.1.0), run the script with `--record`, then `eas build`. Run the script as a plain node command — adding an npm script for it would itself change the runtime.
+
 ## Project structure
 
 ```

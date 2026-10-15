@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useThemeColors, useThemeScheme } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
@@ -181,13 +181,15 @@ export default function RoutePreviewMap({
 
   async function handleLocate() {
     follow.engage();
-    const coords = currentPosition ?? (await getCurrentCoordinates()) ?? undefined;
-    if (coords) {
-      mapRef.current?.animateToRegion(
-        { ...coords, latitudeDelta: MY_LOCATION_ZOOM_DELTA, longitudeDelta: MY_LOCATION_ZOOM_DELTA },
-        500
-      );
+    const coords = currentPosition ?? (await getCurrentCoordinates({ askToTurnOnLocation: true })) ?? undefined;
+    if (!coords) {
+      Alert.alert(t('map.locationUnavailableTitle'), t('map.locationUnavailableMessage'));
+      return;
     }
+    mapRef.current?.animateToRegion(
+      { ...coords, latitudeDelta: MY_LOCATION_ZOOM_DELTA, longitudeDelta: MY_LOCATION_ZOOM_DELTA },
+      500
+    );
   }
 
   const start = points[0];

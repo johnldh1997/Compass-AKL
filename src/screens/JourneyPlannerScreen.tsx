@@ -27,6 +27,7 @@ import { estimateFare, FareEstimate } from '../services/fareZones';
 import { getRouteIdsByShortName } from '../services/gtfs';
 import { getCurrentStepIndex } from '../services/journeyTracking';
 import { startJourneyTracking, stopJourneyTracking, updateJourneyNotification } from '../services/journeyNotification';
+import { ensureLocationPermission } from '../services/location';
 import { getLegColor } from '../services/legColors';
 import { journeyStopFromRoute } from '../services/nearbyConversation';
 import { computeLegProgress, LatLon } from '../services/legProgress';
@@ -390,8 +391,9 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
   // was closed and reopened — takes `route` explicitly (rather than reading the outer
   // journeyRoute state) so a resume can call this before that state even exists yet.
   async function beginTracking(activeRoute: JourneyRoute): Promise<boolean> {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
+    // A phone that has already granted it (even as approximate) goes straight on without any system screen; the request
+    // is only made when it's genuinely needed (see ensureLocationPermission).
+    if (!(await ensureLocationPermission('now'))) {
       Alert.alert(t('journey.locationNeededTitle'), t('journey.locationNeededMessage'));
       return false;
     }
@@ -408,36 +410,44 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
     // distanceInterval 0: a fix every few seconds even while you stand still. With a distance filter the watcher
     // goes silent when you stop, and "no new fix" can't be told from "no signal" — which left the app believing
     // you were still on a bus long after you'd got off and it had driven away (see useBoardedVehicle).
-    locationSubscription.current = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 5_000, distanceInterval: 0 },
-      (position) => {
-        const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-        setCurrentPosition(coords);
-        setCurrentMotion({
-          heading: position.coords.heading != null && position.coords.heading >= 0 ? position.coords.heading : null,
-          speedMps: position.coords.speed != null && position.coords.speed >= 0 ? position.coords.speed : null,
-        });
+    // A phone that won't hand over a location (its Location switch is off, or there's no fix yet) must not stop
+    // the route starting: the timetable-based tracking below still runs without GPS, so the journey carries on
+    // and the user is told why the blue dot isn't moving.
+    try {
+      locationSubscription.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, timeInterval: 5_000, distanceInterval: 0 },
+        (position) => {
+          const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+          setCurrentPosition(coords);
+          setCurrentMotion({
+            heading: position.coords.heading != null && position.coords.heading >= 0 ? position.coords.heading : null,
+            speedMps: position.coords.speed != null && position.coords.speed >= 0 ? position.coords.speed : null,
+          });
 
-        // A low-accuracy fix (e.g. a stale cell/wifi-based estimate right when tracking
-        // starts, before a real GPS lock) can still land within the match threshold of
-        // some step purely by chance on a long multi-leg route — highlighting a step
-        // nowhere near where the user actually is. Only trust reasonably precise fixes
-        // for step-matching; still show the (possibly rough) dot on the map either way.
-        if (position.coords.accuracy != null && position.coords.accuracy > GPS_ACCURACY_THRESHOLD_METERS) {
-          return;
+          // A low-accuracy fix (e.g. a stale cell/wifi-based estimate right when tracking
+          // starts, before a real GPS lock) can still land within the match threshold of
+          // some step purely by chance on a long multi-leg route — highlighting a step
+          // nowhere near where the user actually is. Only trust reasonably precise fixes
+          // for step-matching; still show the (possibly rough) dot on the map either way.
+          if (position.coords.accuracy != null && position.coords.accuracy > GPS_ACCURACY_THRESHOLD_METERS) {
+            return;
+          }
+          currentPositionRef.current = coords;
+          lastFixAtRef.current = Date.now();
+          setMatchedPosition(coords);
+          // Update immediately on every position fix rather than waiting for the interval
+          // below — GPS matching is cheap (pure geometry, no network), so there's no
+          // reason to delay the highlight up to 15s behind where the user actually is.
+          setCurrentStepIndex(getCurrentStepIndex(activeRoute.steps, new Date(), coords));
+          // Keeps the notification fresh while the app is foregrounded even if background
+          // location delivery isn't running (permission denied, or still starting up).
+          updateJourneyNotification(activeRoute.steps, coords).catch(() => {});
         }
-        currentPositionRef.current = coords;
-        lastFixAtRef.current = Date.now();
-        setMatchedPosition(coords);
-        // Update immediately on every position fix rather than waiting for the interval
-        // below — GPS matching is cheap (pure geometry, no network), so there's no
-        // reason to delay the highlight up to 15s behind where the user actually is.
-        setCurrentStepIndex(getCurrentStepIndex(activeRoute.steps, new Date(), coords));
-        // Keeps the notification fresh while the app is foregrounded even if background
-        // location delivery isn't running (permission denied, or still starting up).
-        updateJourneyNotification(activeRoute.steps, coords).catch(() => {});
-      }
-    );
+      );
+    } catch (err) {
+      console.error('Journey location watch failed', err);
+      Alert.alert(t('journey.trackingUnavailableTitle'), t('journey.trackingUnavailableMessage'));
+    }
 
     trackingInterval.current = setInterval(() => {
       setCurrentStepIndex(getCurrentStepIndex(activeRoute.steps, new Date(), currentPositionRef.current));
@@ -455,8 +465,15 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
 
   async function handleStartRoute() {
     if (!journeyRoute) return;
-    const started = await beginTracking(journeyRoute);
-    if (started) saveActiveJourney(journeyRoute, searchedDepartureTime ?? new Date()).catch(() => {});
+    // Anything unexpected must say so: this is an async handler, so a throw here would otherwise vanish and
+    // leave Go looking like it does nothing.
+    try {
+      const started = await beginTracking(journeyRoute);
+      if (started) saveActiveJourney(journeyRoute, searchedDepartureTime ?? new Date()).catch(() => {});
+    } catch (err) {
+      console.error('Start route failed', err);
+      Alert.alert(t('journey.startFailedTitle'), t('journey.startFailedMessage'));
+    }
   }
 
   // Restores an in-progress journey after the app process was closed and reopened (e.g. by
