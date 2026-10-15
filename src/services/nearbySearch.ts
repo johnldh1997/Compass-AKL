@@ -5,9 +5,8 @@
 // current location right now. The parsing of a free-text query into structured intent happens
 // server-side (see server/), never here — this module only ever receives already-structured
 // intent and turns it into real places with real times.
-import { COMPUTE_ROUTES_URL, getApiKey } from './directions';
-import { getInstallId } from './installId';
 import { RecentTurn, ShownResult } from './nearbyConversation';
+import { postToProxy } from './proxyClient';
 import { JourneyEndpoint } from '../types';
 import {
   chooseTravelMode,
@@ -32,8 +31,6 @@ import {
   TravelMode,
 } from './nearbyRanking';
 
-const PLACES_TEXT_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
-const PLACES_NEARBY_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchNearby';
 
 export interface NearbySearchIntent {
   // Free text handed straight to Google's Places Text Search — e.g. "Japanese restaurant".
@@ -106,39 +103,9 @@ export interface NearbySearchOutcome {
   departureTime: Date | null;
 }
 
-function getNearbyProxyUrl(): string {
-  return process.env.EXPO_PUBLIC_NEARBY_PROXY_URL ?? '';
-}
-
 // --- Proxy Calls ---
-// Every call to the Find Nearby Worker (see server/) goes through here: it is the only place the Anthropic
-// key lives, since a client bundle can't hold it safely. Each call carries this install's id so the Worker
-// can rate-limit installs separately (see installId.ts and server/src/limits.ts).
-// A call that outlives this is abandoned for real — the request is aborted, not just ignored — so a
-// connection that has silently stalled (common on a flaky mobile network) is dropped rather than reused
-// by the next attempt. Just under the 12 s step timeout in nearbyTurn.ts, so that one never gets there first.
-const PROXY_TIMEOUT_MS = 11_000;
-
-async function callProxy(path: string, body: unknown, failureLabel: string): Promise<any> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
-  try {
-    const response = await fetch(`${getNearbyProxyUrl()}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Install-Id': await getInstallId() },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data?.error ?? `${failureLabel} error ${response.status}`);
-    }
-    return data;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
+// Everything that needs a secret goes through the Worker (see proxyClient.ts): the model calls below, and the
+// Google Places and Routes calls further down. Neither key is in the app.
 // --- Query Parsing ---
 // Turns free text into structured search intent via the Worker. This never touches Places/Routes itself,
 // only works out what the message is and what to search for. The context is what the app knows that
@@ -157,7 +124,7 @@ export interface ParseContext {
 
 export async function parseNearbyQuery(text: string, context: ParseContext = {}): Promise<ParsedNearbyQuery> {
   const { previousIntent, shownResults, savedPlaces } = context;
-  return callProxy(
+  return postToProxy(
     '/parse-nearby',
     {
       text,
@@ -198,7 +165,7 @@ export async function explainResults(
   hadExplicitTime: boolean,
   rankedBy: RankBy = 'nearest'
 ): Promise<string> {
-  const data = await callProxy('/explain-results', { query, hadExplicitTime, rankedBy, results: resultsPayload(results) }, 'Explanation');
+  const data = await postToProxy('/explain-results', { query, hadExplicitTime, rankedBy, results: resultsPayload(results) }, 'Explanation');
   return data.reply ?? '';
 }
 
@@ -206,7 +173,7 @@ export async function explainResults(
 // Answers a question about results already on screen ("which is best rated?") from those results alone —
 // no new Places or Routes call is made. recentTurns is the last few things said, for "and the other one?".
 export async function answerQuestion(question: string, results: NearbySearchResult[], recentTurns: RecentTurn[]): Promise<string> {
-  const data = await callProxy('/answer-question', { question, results: resultsPayload(results), recentTurns }, 'Answer');
+  const data = await postToProxy('/answer-question', { question, results: resultsPayload(results), recentTurns }, 'Answer');
   return data.reply ?? '';
 }
 
@@ -240,22 +207,8 @@ interface PlacesTextSearchResponse {
   }[];
 }
 
-// Every Places search asks for the same fields, so a place found by words and the same place found by type
-// look identical and can be merged (see mergeCandidates).
-const PLACES_FIELD_MASK =
-  'places.id,places.displayName,places.location,places.regularOpeningHours,places.currentOpeningHours,places.rating,places.userRatingCount,places.editorialSummary,places.googleMapsUri,places.priceLevel,places.servesVegetarianFood,places.outdoorSeating';
-
-async function postPlaces(url: string, body: unknown, failureLabel: string): Promise<PlacesTextSearchResponse> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': getApiKey(), 'X-Goog-FieldMask': PLACES_FIELD_MASK },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`${failureLabel} error ${response.status}: ${await response.text()}`);
-  }
-  return response.json();
-}
+// Both searches go through the Worker, which fixes the fields it asks Google for — so a place found by words and
+// the same place found by type look identical and can be merged (see mergeCandidates).
 
 // By the words in the category ("burger restaurant"). Google ranks these by relevance, so it favours places
 // whose name or reviews match the words — fine for "yogost" or "Barrel N Burger", but a chain like McDonald's
@@ -265,13 +218,9 @@ async function textSearchPlaces(
   near: { lat: number; lon: number },
   radiusMeters: number
 ): Promise<NearbyCandidate[]> {
-  const data = await postPlaces(
-    PLACES_TEXT_SEARCH_URL,
-    {
-      textQuery: category,
-      locationBias: { circle: { center: { latitude: near.lat, longitude: near.lon }, radius: radiusMeters } },
-      maxResultCount: 20,
-    },
+  const data: PlacesTextSearchResponse = await postToProxy(
+    '/google/search-text',
+    { textQuery: category, lat: near.lat, lon: near.lon, radiusMeters, maxResultCount: 20 },
     'Places text search'
   );
   return toCandidates(data.places);
@@ -286,13 +235,15 @@ async function searchNearbyPlacesByType(
   radiusMeters: number,
   rankBy: RankBy
 ): Promise<NearbyCandidate[]> {
-  const data = await postPlaces(
-    PLACES_NEARBY_SEARCH_URL,
+  const data: PlacesTextSearchResponse = await postToProxy(
+    '/google/search-nearby',
     {
       includedTypes: placeTypesFor(placeType),
       rankPreference: rankBy === 'best' ? 'POPULARITY' : 'DISTANCE',
+      lat: near.lat,
+      lon: near.lon,
+      radiusMeters,
       maxResultCount: 20,
-      locationRestriction: { circle: { center: { latitude: near.lat, longitude: near.lon }, radius: radiusMeters } },
     },
     'Places nearby search'
   );
@@ -368,11 +319,11 @@ export async function geocodeReferenceLocation(
 export async function resolveEndpointCoordinates(endpoint: JourneyEndpoint): Promise<{ lat: number; lon: number } | null> {
   if (endpoint.kind === 'coordinates') return { lat: endpoint.lat, lon: endpoint.lon };
   try {
-    const response = await fetch(`https://places.googleapis.com/v1/places/${endpoint.placeId}`, {
-      headers: { 'X-Goog-Api-Key': getApiKey(), 'X-Goog-FieldMask': 'location' },
-    });
-    if (!response.ok) return null;
-    const data: { location?: { latitude?: number; longitude?: number } } = await response.json();
+    const data: { location?: { latitude?: number; longitude?: number } } = await postToProxy(
+      '/google/place-location',
+      { placeId: endpoint.placeId },
+      'Place lookup'
+    );
     return data.location?.latitude != null && data.location?.longitude != null
       ? { lat: data.location.latitude, lon: data.location.longitude }
       : null;
@@ -398,26 +349,16 @@ async function routeToCandidate(
 ): Promise<RoutedCandidate | null> {
   const mode = chooseTravelMode(candidate.straightLineMeters);
   try {
-    const response = await fetch(COMPUTE_ROUTES_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': getApiKey(),
-        'X-Goog-FieldMask':
-          mode === 'TRANSIT'
-            ? 'routes.duration,routes.legs.steps.transitDetails.transitLine.nameShort,routes.legs.steps.transitDetails.transitLine.name'
-            : 'routes.duration',
-      },
-      body: JSON.stringify({
-        origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lon } } },
-        destination: { location: { latLng: { latitude: candidate.lat, longitude: candidate.lon } } },
-        travelMode: mode,
+    const data: ComputeRoutesMinimalResponse = await postToProxy(
+      '/google/route',
+      {
+        profile: mode === 'TRANSIT' ? 'candidate-transit' : 'candidate-walk',
+        origin: { lat: origin.lat, lon: origin.lon },
+        destination: { lat: candidate.lat, lon: candidate.lon },
         ...(departureTime ? { departureTime: departureTime.toISOString() } : {}),
-      }),
-    });
-    if (!response.ok) return null;
-
-    const data: ComputeRoutesMinimalResponse = await response.json();
+      },
+      'Candidate route'
+    );
     const route = data.routes?.[0];
     if (!route?.duration) return null;
 

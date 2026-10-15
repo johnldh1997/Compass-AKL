@@ -1,11 +1,13 @@
 // --- Nearby Chat Worker ---
-// Three endpoints, all via Claude, all text-only:
+// Three endpoints via Claude, all text-only, plus the Google proxy below:
 //  - POST /parse-nearby: a chat message (plus the results on screen and the user's saved place names)
 //    -> what kind of message it is and, for a search, the structured search intent (category, time
 //    budget, a named reference location, a target day/time). See parse.ts.
 //  - POST /explain-results: the client's own already-computed real results -> a short written reply.
 //  - POST /answer-question: a follow-up question about results already on screen -> a short answer.
 //    See explain.ts for both.
+//  - POST /google/*: the app's Google Places and Routes calls, made from here so the Google key never has
+//    to ship inside the app. See google.ts.
 // None of them ever picks a place, route, or time itself — that's real Places/Routes data, computed
 // client-side (see src/services/nearbySearch.ts); they classify, extract, or describe what they're given.
 // This is also the only place the Anthropic API key ever lives — a React Native bundle can't hold a
@@ -13,12 +15,16 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { handleAnswerQuestion, handleExplainResults } from './explain';
+import { handleGoogle, isGoogleEndpoint } from './google';
 import { handleAnthropicError, jsonResponse, MAX_TEXT_LENGTH, readJsonBody } from './http';
 import { checkRateLimits, LimitBindings } from './limits';
 import { MAX_SAVED_PLACES, MAX_SHOWN_RESULTS, parseNearbyIntent, PreviousIntentSchema, ShownResultSchema } from './parse';
 
 export interface Env extends LimitBindings {
   ANTHROPIC_API_KEY: string;
+  // A key used only from here (Places API (New) + Routes API). The key inside the app is a different one,
+  // for the map itself, and can be locked to the app.
+  GOOGLE_API_KEY?: string;
 }
 
 const ShownResultsSchema = z.array(ShownResultSchema).max(MAX_SHOWN_RESULTS);
@@ -66,11 +72,21 @@ export default {
       return jsonResponse({ error: 'Only POST is supported' }, 405);
     }
     const { pathname } = new URL(request.url);
+
+    // Google proxy: no model involved, so no Anthropic key needed — and its own rate limits.
+    if (pathname.startsWith('/google/')) {
+      const endpoint = pathname.slice('/google/'.length);
+      if (!isGoogleEndpoint(endpoint)) return jsonResponse({ error: 'Not found' }, 404);
+      const limited = await checkRateLimits(request, env, 'google');
+      if (limited) return limited;
+      return handleGoogle(request, endpoint, env.GOOGLE_API_KEY);
+    }
+
     if (pathname !== '/parse-nearby' && pathname !== '/explain-results' && pathname !== '/answer-question') {
       return jsonResponse({ error: 'Not found' }, 404);
     }
 
-    const limited = await checkRateLimits(request, env);
+    const limited = await checkRateLimits(request, env, 'model');
     if (limited) return limited;
 
     if (!env.ANTHROPIC_API_KEY) {

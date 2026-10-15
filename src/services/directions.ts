@@ -1,14 +1,9 @@
 import { JourneyEndpoint, JourneyRoute, PlaceSuggestion, TransitStep, TransportMode } from '../types';
+import { postToProxy } from './proxyClient';
 
-const PLACES_AUTOCOMPLETE_URL = 'https://places.googleapis.com/v1/places:autocomplete';
-export const COMPUTE_ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
-
-// Roughly centered on Auckland, used to bias (not restrict) autocomplete results.
-const AUCKLAND_BIAS = { latitude: -36.8485, longitude: 174.7633 };
-
-export function getApiKey(): string {
-  return process.env.EXPO_PUBLIC_GOOGLE_DIRECTIONS_KEY ?? '';
-}
+// Google Places and Routes are called through the Worker (see proxyClient.ts and server/src/google.ts), which
+// holds the Google key — it used to ship inside the app. The Worker fixes the field masks, the Auckland bias
+// and the NZ-only region itself; this file only says what it wants and turns the answer into the app's types.
 
 export function createSessionToken(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -30,25 +25,7 @@ interface AutocompleteResponse {
 export async function autocompletePlace(input: string, sessionToken: string): Promise<PlaceSuggestion[]> {
   if (!input.trim()) return [];
 
-  const response = await fetch(PLACES_AUTOCOMPLETE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': getApiKey(),
-    },
-    body: JSON.stringify({
-      input,
-      sessionToken,
-      includedRegionCodes: ['nz'],
-      locationBias: { circle: { center: AUCKLAND_BIAS, radius: 50000 } },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Places autocomplete error ${response.status}: ${await response.text()}`);
-  }
-
-  const data: AutocompleteResponse = await response.json();
+  const data: AutocompleteResponse = await postToProxy('/google/autocomplete', { input, sessionToken }, 'Places autocomplete');
   return (data.suggestions ?? []).map((s) => ({
     placeId: s.placePrediction.placeId,
     mainText: s.placePrediction.structuredFormat.mainText.text,
@@ -150,9 +127,7 @@ function toStep(step: RouteStep): TransitStep {
 }
 
 function toWaypoint(endpoint: JourneyEndpoint) {
-  return endpoint.kind === 'place'
-    ? { placeId: endpoint.placeId }
-    : { location: { latLng: { latitude: endpoint.lat, longitude: endpoint.lon } } };
+  return endpoint.kind === 'place' ? { placeId: endpoint.placeId } : { lat: endpoint.lat, lon: endpoint.lon };
 }
 
 function toJourneyRoute(route: RouteData): JourneyRoute {
@@ -177,31 +152,18 @@ async function computeTransitRoutes(
   destination: JourneyEndpoint,
   departureTime?: Date
 ): Promise<JourneyRoute[]> {
-  const response = await fetch(COMPUTE_ROUTES_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': getApiKey(),
-      'X-Goog-FieldMask':
-        'routes.legs.steps.transitDetails,routes.legs.steps.staticDuration,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline,routes.localizedValues.duration,routes.polyline.encodedPolyline',
-      // Note: transitDetails.stopDetails.{departureTime,arrivalTime,departureStop,arrivalStop}
-      // and transitLine's nameShort/vehicle.type come along for free as part of the
-      // transitDetails subtree already requested above.
-    },
-    body: JSON.stringify({
+  // The 'journey-transit' profile asks for the transit details (line, headsign, stops, times), the walking
+  // steps and the polylines — see ROUTE_PROFILES in server/src/google.ts.
+  const data: ComputeRoutesResponse = await postToProxy(
+    '/google/route',
+    {
+      profile: 'journey-transit',
       origin: toWaypoint(origin),
       destination: toWaypoint(destination),
-      travelMode: 'TRANSIT',
-      computeAlternativeRoutes: true,
       ...(departureTime ? { departureTime: departureTime.toISOString() } : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Routes API error ${response.status}: ${await response.text()}`);
-  }
-
-  const data: ComputeRoutesResponse = await response.json();
+    },
+    'Routes'
+  );
   return (data.routes ?? []).map(toJourneyRoute);
 }
 
@@ -210,23 +172,11 @@ async function computeTransitRoutes(
 // fallback, so this is fetched separately and appended, giving a walking option even
 // when transit is faster (useful for short hops or when a bus/train just isn't worth it).
 async function getWalkingRoute(origin: JourneyEndpoint, destination: JourneyEndpoint): Promise<JourneyRoute | null> {
-  const response = await fetch(COMPUTE_ROUTES_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': getApiKey(),
-      'X-Goog-FieldMask':
-        'routes.legs.steps.staticDuration,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline,routes.localizedValues.duration,routes.polyline.encodedPolyline',
-    },
-    body: JSON.stringify({
-      origin: toWaypoint(origin),
-      destination: toWaypoint(destination),
-      travelMode: 'WALK',
-    }),
-  });
-
-  if (!response.ok) return null;
-  const data: ComputeRoutesResponse = await response.json();
+  const data: ComputeRoutesResponse = await postToProxy(
+    '/google/route',
+    { profile: 'journey-walk', origin: toWaypoint(origin), destination: toWaypoint(destination) },
+    'Walking route'
+  );
   const route = data.routes?.[0];
   return route ? toJourneyRoute(route) : null;
 }
