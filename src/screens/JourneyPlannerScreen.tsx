@@ -9,6 +9,7 @@ import BackButton from '../components/BackButton';
 import DepartureTimePicker from '../components/DepartureTimePicker';
 import DraggableSheet from '../components/DraggableSheet';
 import LegStopList from '../components/LegStopList';
+import { LOCATE_BUTTON_SIZE } from '../components/LocateButton';
 import PlaceAutocompleteInput from '../components/PlaceAutocompleteInput';
 import RoutePreviewMap from '../components/RoutePreviewMap';
 import TripRow from '../components/TripRow';
@@ -914,8 +915,9 @@ function createStyles(colors: ThemeColors) {
   mapArea: { flex: 1 },
   goButton: {
     position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
+    // Stacked just above the map's locate button (bottom-right, spacing.md from both edges) rather than on top of it.
+    right: spacing.md,
+    bottom: spacing.md + LOCATE_BUTTON_SIZE + spacing.sm,
     width: 64,
     height: 64,
     borderRadius: 32,

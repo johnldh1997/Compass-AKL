@@ -4,6 +4,9 @@ import { Pressable, StyleSheet } from 'react-native';
 import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 
+// Exported so a button placed above it (the route preview's Go) can sit clear of it.
+export const LOCATE_BUTTON_SIZE = 44;
+
 interface Props {
   onPress: () => void;
   style?: object;
@@ -32,9 +35,9 @@ export default function LocateButton({ onPress, style, following = false }: Prop
 // controls — it sits over the map, not the app's themed background.
 const styles = StyleSheet.create({
   button: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: LOCATE_BUTTON_SIZE,
+    height: LOCATE_BUTTON_SIZE,
+    borderRadius: LOCATE_BUTTON_SIZE / 2,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
