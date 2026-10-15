@@ -1,6 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapMarkerProps, Marker } from 'react-native-maps';
 
+// --- Never The Default Red Pin ---
+// A map marker with no image shows Android's default red pin until its custom view has been laid out and captured as a
+// bitmap (and again if its view is ever swapped out). The hiding below usually covers that gap, but on a busy phone the
+// layout can land after the marker is revealed. Giving every marker a fully transparent 1x1 stand-in image changes what
+// the native side falls back to: nothing, instead of a red pin. The marker's real look is drawn on top of it as before.
+const TRANSPARENT_PIXEL = {
+  uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=',
+};
+
 const REVEAL_AFTER_MS = 400;
 // How long native view tracking is switched back on after `snapshotKey` changes — long
 // enough for the native side to capture one fresh bitmap of the marker's new content.
@@ -46,5 +55,12 @@ export default function StableMarker({ snapshotKey, ...props }: Props) {
     return () => clearTimeout(timeout);
   }, [snapshotKey, ready]);
 
-  return <Marker {...props} tracksViewChanges={!ready || refreshing} opacity={ready ? props.opacity ?? 1 : 0} />;
+  return (
+    <Marker
+      image={TRANSPARENT_PIXEL}
+      {...props}
+      tracksViewChanges={!ready || refreshing}
+      opacity={ready ? props.opacity ?? 1 : 0}
+    />
+  );
 }

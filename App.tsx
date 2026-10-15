@@ -22,6 +22,7 @@ import { ThemeProvider, useThemeColors, useThemeScheme } from './src/context/The
 import { useTranslation } from './src/i18n/useTranslation';
 import { loadActiveJourney } from './src/services/activeJourney';
 import { installErrorLog } from './src/services/errorLog';
+import { runUpdateCheck } from './src/services/updateCheck';
 import AboutScreen from './src/screens/AboutScreen';
 import AddFavoriteScreen from './src/screens/AddFavoriteScreen';
 import AlertsScreen from './src/screens/AlertsScreen';
@@ -75,27 +76,21 @@ export default function App() {
   // here means a single close-and-reopen always lands on the latest published update.
   const [updateChecked, setUpdateChecked] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('Checking for updates…');
+  // The wait has a time limit (see services/updateCheck.ts): on a weak connection the app opens after a few seconds
+  // as it is, and a late-finishing download is used on the next launch instead of holding the app up.
   useEffect(() => {
-    async function checkForUpdate() {
-      if (!Updates.isEnabled) {
-        setUpdateChecked(true);
-        return;
-      }
-      try {
-        const result = await Updates.checkForUpdateAsync();
-        if (result.isAvailable) {
-          setUpdateStatus('Downloading update…');
-          await Updates.fetchUpdateAsync();
-          setUpdateStatus('Restarting…');
-          await Updates.reloadAsync();
-          return;
-        }
-      } catch (err) {
-        console.warn('Update check failed:', err);
-      }
+    if (!Updates.isEnabled) {
       setUpdateChecked(true);
+      return;
     }
-    checkForUpdate();
+    runUpdateCheck({
+      check: async () => (await Updates.checkForUpdateAsync()).isAvailable,
+      download: async () => {
+        await Updates.fetchUpdateAsync();
+      },
+      restart: () => Updates.reloadAsync(),
+      onStage: (stage) => setUpdateStatus(stage === 'downloading' ? 'Downloading update…' : 'Restarting…'),
+    }).then(() => setUpdateChecked(true));
   }, []);
 
   if (!fontsLoaded || !updateChecked) {
