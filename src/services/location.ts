@@ -1,5 +1,12 @@
 import * as Location from 'expo-location';
 import { JourneyEndpoint } from '../types';
+import { findFix, withTimeout } from './positionFix';
+
+const RECENT_FIX_MS = 30_000;
+const FRESH_FIX_TIMEOUT_MS = 10_000;
+const OLD_FIX_MS = 5 * 60_000;
+// The device's address lookup can also stall; the endpoint is usable without an address, so it only gets a moment.
+const GEOCODE_TIMEOUT_MS = 4_000;
 
 // --- Location Permission ---
 // Asking Android for a permission puts a system screen over the app, which pauses and resumes it. The old code asked on
@@ -38,8 +45,17 @@ export async function getCurrentCoordinates({
   try {
     if (!(await ensureLocationPermission(askToTurnOnLocation ? 'now' : 'once'))) return null;
 
-    const position = await Location.getCurrentPositionAsync({ mayShowUserSettingsDialog: askToTurnOnLocation });
-    return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+    // Never waits for ever (see services/positionFix.ts): a fix from the last 30 s counts as current, a fresh one gets
+    // 10 s, and failing that the newest fix from the last 5 minutes is used.
+    const fix = await findFix<Location.LocationObject>(
+      {
+        recent: () => Location.getLastKnownPositionAsync({ maxAge: RECENT_FIX_MS }),
+        fresh: () => Location.getCurrentPositionAsync({ mayShowUserSettingsDialog: askToTurnOnLocation }),
+        old: () => Location.getLastKnownPositionAsync({ maxAge: OLD_FIX_MS }),
+      },
+      FRESH_FIX_TIMEOUT_MS
+    );
+    return fix ? { latitude: fix.coords.latitude, longitude: fix.coords.longitude } : null;
   } catch {
     return null;
   }
@@ -82,7 +98,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string |
 export async function getCurrentLocationEndpoint(): Promise<JourneyEndpoint | null> {
   const coords = await getCurrentCoordinates({ askToTurnOnLocation: true });
   if (!coords) return null;
-  const address = await reverseGeocode(coords.latitude, coords.longitude);
+  const address = await withTimeout(reverseGeocode(coords.latitude, coords.longitude), GEOCODE_TIMEOUT_MS);
   return {
     kind: 'coordinates',
     lat: coords.latitude,

@@ -15,7 +15,9 @@ export interface UpdateSteps {
   onStage?: (stage: 'downloading' | 'restarting') => void;
 }
 
-export const UPDATE_WAIT_MS = 5_000;
+// Measured: a normal update takes 1-5 s to download, so 5 s cut one off and made it arrive a launch late; 8 s still
+// bounds the wait far below the 10-25 s a weak connection used to cost.
+export const UPDATE_WAIT_MS = 8_000;
 
 // Resolves when the app should open: up to date, the check failed, or the budget ran out. Never resolves when the app is
 // restarting into a new update (this instance is about to be replaced, so it must not open).

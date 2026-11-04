@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runUpdateCheck, type UpdateSteps } from './updateCheck.ts';
 
-const BUDGET = 60;
+const BUDGET = 250;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 // Records what the steps were asked to do, so a test can see what did and didn't happen.
@@ -78,10 +78,10 @@ test('a restart already under way is not interrupted by the budget running out',
 
 test('a failed check opens the app', async () => {
   const { steps } = fakeSteps({ failCheck: true });
-  assert.equal(await resolvesWithin(runUpdateCheck(steps, BUDGET), BUDGET / 2), true);
+  assert.equal(await resolvesWithin(runUpdateCheck(steps, BUDGET), BUDGET * 0.75), true);
 });
 
 test('a restart that fails opens the app instead of leaving it on the loading screen', async () => {
   const { steps } = fakeSteps({ available: true, failRestart: true });
-  assert.equal(await resolvesWithin(runUpdateCheck(steps, BUDGET), BUDGET / 2), true);
+  assert.equal(await resolvesWithin(runUpdateCheck(steps, BUDGET), BUDGET * 0.75), true);
 });

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFavoritePlaces } from '../context/FavoritePlacesContext';
 import { useHomeAddress } from '../context/HomeAddressContext';
@@ -84,10 +84,19 @@ export default function PlaceAutocompleteInput({
     onSelect(endpoint);
   }
 
+  // --- Current Location Feedback ---
+  // Finding a fix can take a few seconds, so the row says so (and ignores more taps) instead of looking dead.
+  const [locating, setLocating] = useState(false);
   async function handleUseCurrentLocation() {
-    const endpoint = await getCurrentLocationEndpoint();
-    if (endpoint) choose(endpoint);
-    else Alert.alert(t('map.locationUnavailableTitle'), t('map.locationUnavailableMessage'));
+    if (locating) return;
+    setLocating(true);
+    try {
+      const endpoint = await getCurrentLocationEndpoint();
+      if (endpoint) choose(endpoint);
+      else Alert.alert(t('map.locationUnavailableTitle'), t('map.locationUnavailableMessage'));
+    } finally {
+      setLocating(false);
+    }
   }
 
   function handleClear() {
@@ -191,9 +200,13 @@ export default function PlaceAutocompleteInput({
           <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
             {showQuickOptions && (
               <>
-                <Pressable style={styles.suggestionRow} onPress={handleUseCurrentLocation}>
-                  <Ionicons name="locate" size={18} color={colors.primary} />
-                  <Text style={styles.mainText}>{t('common.currentLocation')}</Text>
+                <Pressable style={styles.suggestionRow} onPress={handleUseCurrentLocation} disabled={locating}>
+                  {locating ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Ionicons name="locate" size={18} color={colors.primary} />
+                  )}
+                  <Text style={styles.mainText}>{locating ? t('map.findingLocation') : t('common.currentLocation')}</Text>
                 </Pressable>
                 {homeAddress && (
                   <Pressable style={styles.suggestionRow} onPress={() => choose(homeAddress)}>
