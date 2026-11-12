@@ -72,7 +72,7 @@ export default function SideMenu({ visible, onClose, items }: Props) {
   // (offline, no key) just means no warning.
   useEffect(() => {
     getVehiclePositions()
-      .then((vehicles) => countKnownTrips(vehicles.map((v) => v.tripId)))
+      .then((vehicles) => countKnownTrips(vehicles.map((v) => v.tripId).filter((id): id is string => !!id)))
       .then(({ matched, total }) => setFeedDrifted(isFeedDrifted(matched, total)))
       .catch(() => {});
   }, []);
