@@ -269,13 +269,19 @@ export default function PlaceAutocompleteInput({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: { marginBottom: spacing.sm },
-    inputRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-    input: {
-      flex: 1,
+    // The border/background live on the row so the clear and favourite buttons sit inside the search bar.
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
       backgroundColor: colors.surface,
       borderRadius: radius.md,
       borderWidth: 1,
       borderColor: colors.border,
+      paddingRight: spacing.sm,
+    },
+    input: {
+      flex: 1,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
     },

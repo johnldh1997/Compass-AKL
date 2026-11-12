@@ -6,6 +6,7 @@ import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedPressable from '../components/AnimatedPressable';
 import DepartureTimePicker from '../components/DepartureTimePicker';
+import EndpointsWithSwap from '../components/EndpointsWithSwap';
 import FavoritesPanel, { PANEL_PEEK_HEIGHT } from '../components/FavoritesPanel';
 import PlaceAutocompleteInput from '../components/PlaceAutocompleteInput';
 import SideMenu from '../components/SideMenu';
@@ -143,6 +144,12 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <Ionicons name="close" size={22} color={colors.textMuted} />
               </Pressable>
             </View>
+            <EndpointsWithSwap
+              onSwap={() => {
+                setHomeFrom(homeTo);
+                setHomeTo(homeFrom);
+              }}
+            >
             <PlaceAutocompleteInput
               key={homeFrom ? `from-${homeFrom.label}` : 'from-empty'}
               placeholder={t('journey.from')}
@@ -187,6 +194,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               }
               initialEndpoint={homeTo ?? undefined}
             />
+            </EndpointsWithSwap>
             <DepartureTimePicker value={homeDepartureTime} onChange={setHomeDepartureTime} />
             <AnimatedPressable
               style={[styles.getDirectionsButton, (!homeFrom || !homeTo) && styles.getDirectionsButtonDisabled]}

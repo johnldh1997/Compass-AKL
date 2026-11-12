@@ -10,6 +10,7 @@ import DepartureTimePicker from '../components/DepartureTimePicker';
 import DraggableSheet from '../components/DraggableSheet';
 import LegStopList from '../components/LegStopList';
 import { LOCATE_BUTTON_SIZE } from '../components/LocateButton';
+import EndpointsWithSwap from '../components/EndpointsWithSwap';
 import PlaceAutocompleteInput from '../components/PlaceAutocompleteInput';
 import RoutePreviewMap from '../components/RoutePreviewMap';
 import TripRow from '../components/TripRow';
@@ -639,8 +640,7 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
       <View style={styles.form}>
         {/* --- Editable Journey Endpoints --- */}
-        <View style={styles.endpointsRow}>
-        <View style={styles.endpointsInputs}>
+        <EndpointsWithSwap onSwap={handleSwapEndpoints}>
         <PlaceAutocompleteInput
           key={from ? `from-${from.label}` : 'from-empty'}
           placeholder={t('journey.from')}
@@ -689,17 +689,7 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
           }
           initialEndpoint={to ?? undefined}
         />
-        </View>
-        <Pressable
-          onPress={handleSwapEndpoints}
-          hitSlop={8}
-          style={styles.swapButton}
-          accessibilityRole="button"
-          accessibilityLabel={t('journey.swap')}
-        >
-          <Ionicons name="swap-vertical" size={22} color={colors.primary} />
-        </Pressable>
-        </View>
+        </EndpointsWithSwap>
         <DepartureTimePicker value={departureTime} onChange={setDepartureTime} />
         <AnimatedPressable
           style={[styles.searchButton, (!from || !to) && styles.searchButtonDisabled]}
@@ -886,11 +876,7 @@ function createStyles(colors: ThemeColors) {
   },
   topBarTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   scrollContent: { paddingBottom: spacing.xl },
-  form: { padding: spacing.lg },
-  endpointsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  endpointsInputs: { flex: 1 },
-  swapButton: { padding: spacing.xs },
-  tripsList: { paddingHorizontal: spacing.lg, gap: spacing.sm },
+  form: { padding: spacing.lg },  tripsList: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
