@@ -6,8 +6,8 @@ import AnimatedPressable from './AnimatedPressable';
 import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { isFeedDrifted } from '../services/feedDrift';
-import { countKnownTrips, getFeedInfo } from '../services/gtfsStatic';
-import { getVehiclePositions } from '../services/vehicles';
+import { getFeedMatch } from '../services/feedHealth';
+import { getFeedInfo } from '../services/gtfsStatic';
 import { radius, spacing, ThemeColors } from '../theme';
 
 const FEED_WARNING_DAYS = 30;
@@ -71,8 +71,7 @@ export default function SideMenu({ visible, onClose, items }: Props) {
   // many live trips the bundled timetable still recognises. Best-effort: any failure
   // (offline, no key) just means no warning.
   useEffect(() => {
-    getVehiclePositions()
-      .then((vehicles) => countKnownTrips(vehicles.map((v) => v.tripId).filter((id): id is string => !!id)))
+    getFeedMatch()
       .then(({ matched, total }) => setFeedDrifted(isFeedDrifted(matched, total)))
       .catch(() => {});
   }, []);

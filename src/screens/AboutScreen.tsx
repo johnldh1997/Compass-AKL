@@ -6,6 +6,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { LoggedError, readLastError } from '../services/errorLog';
+import { getFeedMatch } from '../services/feedHealth';
+import { getFeedInfo, GtfsFeedInfo } from '../services/gtfsStatic';
 import { radius, spacing, ThemeColors } from '../theme';
 
 const FEATURE_KEYS = [
@@ -20,6 +22,9 @@ const HOW_TO_KEYS = ['about.howTo.map', 'about.howTo.plan', 'about.howTo.menu', 
 
 const LIMITATION_KEYS = ['about.limitation.routeShapes', 'nearby.privacy'] as const;
 
+// GTFS dates are YYYYMMDD; show them as YYYY-MM-DD.
+const formatYmd = (ymd: string) => `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
+
 export default function AboutScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -28,6 +33,22 @@ export default function AboutScreen() {
   useEffect(() => {
     readLastError().then(setLastError);
   }, []);
+
+  // --- Timetable Health ---
+  const [feedInfo, setFeedInfo] = useState<GtfsFeedInfo | null>(null);
+  const [feedMatch, setFeedMatch] = useState<{ matched: number; total: number } | null>(null);
+  useEffect(() => {
+    getFeedInfo().then(setFeedInfo).catch(() => {});
+    getFeedMatch().then(setFeedMatch).catch(() => {});
+  }, []);
+  const timetableInfo = [
+    feedInfo ? t('about.timetableUntil', { date: formatYmd(feedInfo.endDate) }) : '',
+    feedMatch && feedMatch.total > 0
+      ? t('about.timetableMatch', { percent: Math.round((100 * feedMatch.matched) / feedMatch.total) })
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -69,6 +90,10 @@ export default function AboutScreen() {
           that arrives over the air (see scripts/check-install-version.js). It is also part of the update runtime,
           so a phone showing it is on an install that receives updates for that same number. The line below names
           the update actually running, or says the built-in code is running because none has been downloaded. */}
+      {/* --- Timetable Health --- When the bundled timetable ends and how much of the live fleet it still recognises. */}
+      {!!timetableInfo && (
+        <Text style={styles.updateInfo}>{timetableInfo}</Text>
+      )}
       <Text style={styles.version}>{t('about.version', { value: Constants.expoConfig?.version ?? 'n/a' })}</Text>
       <Text style={styles.versionHint}>{t('about.versionHint')}</Text>
       <Text style={styles.updateInfo} selectable>
