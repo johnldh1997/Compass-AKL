@@ -1,0 +1,4 @@
+# Expo fingerprints these files into the native runtime version. Windows CRLF checkouts change the
+# hash and silently stop over-the-air updates reaching installed builds, so keep them LF.
+.gitignore text eol=lf
+eas.json text eol=lf
