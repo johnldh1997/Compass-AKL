@@ -219,6 +219,22 @@ export async function getFeedInfo(): Promise<GtfsFeedInfo | null> {
   return { startDate: row.feed_start_date, endDate: row.feed_end_date, version: row.feed_version, daysUntilExpiry };
 }
 
+// --- Timetable Drift Check ---
+// How many of the given live trip ids the bundled database still knows. Sampled (not the
+// whole fleet) to stay under SQLite's bound-variable limit and keep the query cheap.
+const DRIFT_SAMPLE_SIZE = 300;
+export async function countKnownTrips(tripIds: string[]): Promise<{ matched: number; total: number }> {
+  const sample = [...new Set(tripIds)].slice(0, DRIFT_SAMPLE_SIZE);
+  if (sample.length === 0) return { matched: 0, total: 0 };
+  const db = await getDb();
+  const placeholders = sample.map(() => '?').join(',');
+  const row = await db.getFirstAsync<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM trips WHERE trip_id IN (${placeholders})`,
+    sample
+  );
+  return { matched: row?.n ?? 0, total: sample.length };
+}
+
 // Time window (seconds) a candidate trip's departure from the boarding stop must fall
 // within to be considered a match at all — well outside this, it's a different trip
 // entirely, not just a slightly-off schedule.

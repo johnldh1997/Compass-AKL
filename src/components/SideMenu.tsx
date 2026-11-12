@@ -5,7 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedPressable from './AnimatedPressable';
 import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
-import { getFeedInfo } from '../services/gtfsStatic';
+import { isFeedDrifted } from '../services/feedDrift';
+import { countKnownTrips, getFeedInfo } from '../services/gtfsStatic';
+import { getVehiclePositions } from '../services/vehicles';
 import { radius, spacing, ThemeColors } from '../theme';
 
 const FEED_WARNING_DAYS = 30;
@@ -40,6 +42,7 @@ export default function SideMenu({ visible, onClose, items }: Props) {
   // Days remaining rather than the formatted string itself, so the message re-translates
   // correctly if the language setting changes after this has already resolved once.
   const [daysUntilExpiry, setDaysUntilExpiry] = useState<number | null>(null);
+  const [feedDrifted, setFeedDrifted] = useState(false);
   const t = useTranslation();
 
   useEffect(() => {
@@ -63,14 +66,27 @@ export default function SideMenu({ visible, onClose, items }: Props) {
     });
   }, []);
 
+  // --- Timetable Drift Check ---
+  // The calendar end date alone misses AT re-issuing trip IDs early, so also check how
+  // many live trips the bundled timetable still recognises. Best-effort: any failure
+  // (offline, no key) just means no warning.
+  useEffect(() => {
+    getVehiclePositions()
+      .then((vehicles) => countKnownTrips(vehicles.map((v) => v.tripId)))
+      .then(({ matched, total }) => setFeedDrifted(isFeedDrifted(matched, total)))
+      .catch(() => {});
+  }, []);
+
   if (!rendered) return null;
 
   const feedWarning =
-    daysUntilExpiry === null
-      ? null
-      : daysUntilExpiry < 0
-        ? t('feed.expired')
-        : t('feed.expiring', { days: daysUntilExpiry });
+    daysUntilExpiry !== null && daysUntilExpiry < 0
+      ? t('feed.expired')
+      : feedDrifted
+        ? t('feed.drifted')
+        : daysUntilExpiry !== null
+          ? t('feed.expiring', { days: daysUntilExpiry })
+          : null;
 
   return (
     <View style={StyleSheet.absoluteFill}>

@@ -372,6 +372,13 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
     if (nextFrom && nextTo) runSearch(nextFrom, nextTo);
   }
 
+  // --- Swap From/To ---
+  function handleSwapEndpoints() {
+    setFrom(to);
+    setTo(from);
+    if (from && to) runSearch(to, from);
+  }
+
   function handleRunTrip(tripFrom: JourneyEndpoint, tripTo: JourneyEndpoint) {
     setFrom(tripFrom);
     setTo(tripTo);
@@ -632,6 +639,8 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
       <View style={styles.form}>
         {/* --- Editable Journey Endpoints --- */}
+        <View style={styles.endpointsRow}>
+        <View style={styles.endpointsInputs}>
         <PlaceAutocompleteInput
           key={from ? `from-${from.label}` : 'from-empty'}
           placeholder={t('journey.from')}
@@ -680,6 +689,17 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
           }
           initialEndpoint={to ?? undefined}
         />
+        </View>
+        <Pressable
+          onPress={handleSwapEndpoints}
+          hitSlop={8}
+          style={styles.swapButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('journey.swap')}
+        >
+          <Ionicons name="swap-vertical" size={22} color={colors.primary} />
+        </Pressable>
+        </View>
         <DepartureTimePicker value={departureTime} onChange={setDepartureTime} />
         <AnimatedPressable
           style={[styles.searchButton, (!from || !to) && styles.searchButtonDisabled]}
@@ -867,6 +887,9 @@ function createStyles(colors: ThemeColors) {
   topBarTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   scrollContent: { paddingBottom: spacing.xl },
   form: { padding: spacing.lg },
+  endpointsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  endpointsInputs: { flex: 1 },
+  swapButton: { padding: spacing.xs },
   tripsList: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   optionRow: {
     flexDirection: 'row',
