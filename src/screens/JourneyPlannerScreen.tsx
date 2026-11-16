@@ -9,6 +9,7 @@ import BackButton from '../components/BackButton';
 import CrowdingIndicator from '../components/CrowdingIndicator';
 import DepartureTimePicker from '../components/DepartureTimePicker';
 import DraggableSheet from '../components/DraggableSheet';
+import NextBusesCard from '../components/NextBusesCard';
 import LegStopList from '../components/LegStopList';
 import { LOCATE_BUTTON_SIZE } from '../components/LocateButton';
 import EndpointsWithSwap from '../components/EndpointsWithSwap';
@@ -35,6 +36,7 @@ import { ensureLocationPermission } from '../services/location';
 import { getLegColor } from '../services/legColors';
 import { journeyStopFromRoute } from '../services/nearbyConversation';
 import { CrowdingLevel } from '../services/occupancy';
+import { distanceMeters } from '../services/geo';
 import { computeLegProgress, LatLon } from '../services/legProgress';
 import { getVehiclesForRoutes } from '../services/liveVehicleMatch';
 import { radius, spacing, ThemeColors } from '../theme';
@@ -128,6 +130,8 @@ type ScreenState = 'form' | 'preview' | 'active';
 
 const TRACKING_UPDATE_INTERVAL_MS = 15_000;
 const GPS_ACCURACY_THRESHOLD_METERS = 50;
+// Within this of the boarding stop you're still waiting for the bus rather than riding it.
+const BOARDING_AREA_METERS = 200;
 const SHEET_MIN_HEIGHT = 140;
 const SHEET_MAX_HEIGHT = Math.round(Dimensions.get('window').height * 0.7);
 
@@ -155,6 +159,12 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
   const legStops = useLegStops(journeyRoute?.steps);
   // --- Crowding On Your Journey ---
   const legCrowding = useLegCrowding(journeyRoute?.steps);
+  // Just the first bus leg of each route option — the one you'd be catching first, and enough to compare options.
+  const firstLegOfEachOption = useMemo(
+    () => routeOptions.map((option) => option.steps.find((step) => step.kind === 'transit')),
+    [routeOptions]
+  );
+  const optionCrowding = useLegCrowding(firstLegOfEachOption);
   const [focusOnUserAt, setFocusOnUserAt] = useState<number>();
   const [focusStepAt, setFocusStepAt] = useState<{ index: number; requestedAt: number }>();
   const [routeAlerts, setRouteAlerts] = useState<ServiceAlert[]>([]);
@@ -539,6 +549,21 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
     // "Wait N min for the 105" is the planned schedule's countdown; once you're sitting on a 105 it is wrong at best.
     const waitInfo =
       screenState === 'active' && !boardedVehicle ? getUpcomingWait(journeyRoute.steps, currentStepIndex, new Date()) : null;
+    // --- Next Buses ---
+    // The next transit leg you still have to catch, while you're not on a bus: its next few departures with
+    // crowding, so you can pick between the bus coming now and one with a seat. Hidden once you're riding — on
+    // that leg and clearly away from where it boards.
+    const waitLegIndex =
+      screenState === 'active' && boardedVehicle
+        ? -1
+        : journeyRoute.steps.findIndex((s, i) => i >= currentStepIndex && s.kind === 'transit' && !!s.lineName);
+    const waitLegStop = waitLegIndex >= 0 ? legStops.get(waitLegIndex)?.[0] : undefined;
+    const ridingThatLeg =
+      screenState === 'active' &&
+      waitLegIndex === currentStepIndex &&
+      !!waitLegStop &&
+      !!matchedPosition &&
+      distanceMeters(matchedPosition, { latitude: waitLegStop.lat, longitude: waitLegStop.lon }) > BOARDING_AREA_METERS;
     // Where this trip gets off — what Find Nearby searches around ("dinner near my stop"). A walking-only
     // route has no stop, so there's nothing to offer.
     const tripStop = journeyStopFromRoute(journeyRoute);
@@ -604,6 +629,14 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
                 {t('journey.waitFor', { minutes: waitInfo.minutes, line: waitInfo.lineName ?? '?' })}
               </Text>
             </View>
+          )}
+          {waitLegStop && !ridingThatLeg && (
+            <NextBusesCard
+              lineName={journeyRoute.steps[waitLegIndex].lineName as string}
+              stopId={waitLegStop.id}
+              stopName={waitLegStop.name}
+              plannedDeparture={journeyRoute.steps[waitLegIndex].departureTimestamp}
+            />
           )}
           {routeAlerts.length > 0 && (
             <View style={styles.alertsList}>
@@ -722,6 +755,8 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
                   </Text>
                 )}
                 <RouteLineBadges steps={option.steps} />
+                {/* --- Crowding On Route Options --- */}
+                {optionCrowding.get(index) && <CrowdingIndicator level={optionCrowding.get(index) as CrowdingLevel} />}
                 <Text style={styles.optionWalk}>{option.walkSummary}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

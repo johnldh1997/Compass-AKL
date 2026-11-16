@@ -10,7 +10,7 @@ const POLL_MS = 30_000;
 // How full the bus for each transit leg is, keyed by the leg's index in `steps`. Each leg is matched to AT's
 // trip (the same match that gives its stop list), and that trip to the live vehicle running it. A leg whose
 // bus isn't on the road yet, can't be matched, or reports no occupancy is simply absent from the map.
-export function useLegCrowding(steps: TransitStep[] | undefined): Map<number, CrowdingLevel> {
+export function useLegCrowding(steps: ReadonlyArray<TransitStep | undefined> | undefined): Map<number, CrowdingLevel> {
   const [tripIds, setTripIds] = useState<Map<number, string>>(new Map());
   const [levels, setLevels] = useState<Map<number, CrowdingLevel>>(new Map());
 
@@ -19,7 +19,7 @@ export function useLegCrowding(steps: TransitStep[] | undefined): Map<number, Cr
     setTripIds(new Map());
     setLevels(new Map());
     steps?.forEach((step, index) => {
-      if (step.kind !== 'transit') return;
+      if (!step || step.kind !== 'transit') return;
       getTripIdForLeg(step)
         .then((tripId) => {
           if (!cancelled && tripId) setTripIds((prev) => new Map(prev).set(index, tripId));
