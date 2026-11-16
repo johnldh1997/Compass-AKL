@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { JourneyRoute } from '../types';
+import { JourneyEndpoint, JourneyRoute } from '../types';
 
 const STORAGE_KEY = 'auckland-transit:active-journey';
 
@@ -13,16 +13,23 @@ const STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 interface ActiveJourneyData {
   route: JourneyRoute;
   searchedDepartureTime: string;
+  // Where the trip is heading, so "Plan again from here" still works after the app is reopened mid-route.
+  // Absent on journeys saved before this was recorded.
+  destination?: JourneyEndpoint;
 }
 
 // The single source of truth for "is a journey currently active," persisted so it survives
 // the app process being killed and relaunched — JourneyPlannerScreen restores from this on
 // mount rather than losing the in-progress route, and journeyNotification.ts's background
 // task reads it too (a headless JS context has no access to React state).
-export async function saveActiveJourney(route: JourneyRoute, searchedDepartureTime: Date): Promise<void> {
+export async function saveActiveJourney(
+  route: JourneyRoute,
+  searchedDepartureTime: Date,
+  destination?: JourneyEndpoint
+): Promise<void> {
   await AsyncStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ route, searchedDepartureTime: searchedDepartureTime.toISOString() })
+    JSON.stringify({ route, searchedDepartureTime: searchedDepartureTime.toISOString(), destination })
   );
 }
 

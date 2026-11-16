@@ -32,7 +32,7 @@ import { estimateFare, FareEstimate } from '../services/fareZones';
 import { getRouteIdsByShortName } from '../services/gtfs';
 import { getCurrentStepIndex } from '../services/journeyTracking';
 import { startJourneyTracking, stopJourneyTracking, updateJourneyNotification } from '../services/journeyNotification';
-import { ensureLocationPermission } from '../services/location';
+import { ensureLocationPermission, getCurrentLocationEndpoint } from '../services/location';
 import { getLegColor } from '../services/legColors';
 import { journeyStopFromRoute } from '../services/nearbyConversation';
 import { CrowdingLevel } from '../services/occupancy';
@@ -493,7 +493,7 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
     // leave Go looking like it does nothing.
     try {
       const started = await beginTracking(journeyRoute);
-      if (started) saveActiveJourney(journeyRoute, searchedDepartureTime ?? new Date()).catch(() => {});
+      if (started) saveActiveJourney(journeyRoute, searchedDepartureTime ?? new Date(), to ?? undefined).catch(() => {});
     } catch (err) {
       console.error('Start route failed', err);
       Alert.alert(t('journey.startFailedTitle'), t('journey.startFailedMessage'));
@@ -511,6 +511,7 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
       if (!data) return;
       setJourneyRoute(data.route);
       setSearchedDepartureTime(new Date(data.searchedDepartureTime));
+      if (data.destination) setTo(data.destination);
       beginTracking(data.route).then((started) => {
         if (started) return;
         // Location permission was denied (or revoked in OS settings since the journey
@@ -536,6 +537,24 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
     setJourneyRoute(null);
     setCurrentPosition(undefined);
     setMatchedPosition(undefined);
+  }
+
+  // --- Plan Again From Here ---
+  // After missing a bus: end the current route and search afresh from where you are now to the same destination,
+  // for a new set of route options with new times.
+  async function handleReplanFromHere() {
+    if (!to) {
+      Alert.alert(t('journey.replanFromHere'), t('journey.replanNoDestination'));
+      return;
+    }
+    const here = await getCurrentLocationEndpoint();
+    if (!here) {
+      Alert.alert(t('map.locationUnavailableTitle'), t('map.locationUnavailableMessage'));
+      return;
+    }
+    confirmedEndRoute();
+    setFrom(here);
+    await runSearch(here, to);
   }
 
   function handleEndRoute() {
@@ -636,6 +655,7 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
               stopId={waitLegStop.id}
               stopName={waitLegStop.name}
               plannedDeparture={journeyRoute.steps[waitLegIndex].departureTimestamp}
+              onReplan={screenState === 'active' ? handleReplanFromHere : undefined}
             />
           )}
           {routeAlerts.length > 0 && (

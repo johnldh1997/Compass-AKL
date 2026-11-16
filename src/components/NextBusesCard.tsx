@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { useNextBuses } from '../hooks/useNextBuses';
@@ -20,12 +21,15 @@ export default function NextBusesCard({
   stopId,
   stopName,
   plannedDeparture,
+  onReplan,
 }: {
   lineName: string;
   stopId: string;
   stopName?: string;
   // ISO time the planned bus was due to leave this stop.
   plannedDeparture?: string;
+  // Offered once the planned bus has been missed: search again from where you are now.
+  onReplan?: () => Promise<void>;
 }) {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -36,6 +40,18 @@ export default function NextBusesCard({
     const interval = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(interval);
   }, []);
+
+  // Finding where you are can take a few seconds, so the button says so and ignores more taps.
+  const [replanning, setReplanning] = useState(false);
+  async function handleReplan() {
+    if (!onReplan || replanning) return;
+    setReplanning(true);
+    try {
+      await onReplan();
+    } finally {
+      setReplanning(false);
+    }
+  }
 
   if (buses.length === 0) return null;
   const missed = !!plannedDeparture && now > new Date(plannedDeparture).getTime() + MISSED_AFTER_MS;
@@ -57,6 +73,17 @@ export default function NextBusesCard({
           </View>
         );
       })}
+      {/* --- Plan Again From Here --- */}
+      {missed && !!onReplan && (
+        <Pressable style={styles.replanButton} onPress={handleReplan} disabled={replanning} accessibilityRole="button">
+          {replanning ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Ionicons name="refresh" size={14} color={colors.primary} />
+          )}
+          <Text style={styles.replanText}>{replanning ? t('map.findingLocation') : t('journey.replanFromHere')}</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -77,5 +104,14 @@ function createStyles(colors: ThemeColors) {
     minutes: { color: colors.text, fontWeight: '700', fontSize: 14, minWidth: 56 },
     scheduled: { color: colors.textMuted, fontSize: 11 },
     spacer: { flex: 1 },
+    replanButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      alignSelf: 'flex-start',
+      marginTop: spacing.xs,
+      paddingVertical: spacing.xs,
+    },
+    replanText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
   });
 }
