@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  isWalkingPace,
   KEEP_MISSING_MS,
   matchBoardedVehicle,
   trailCourseDegrees,
@@ -151,6 +152,37 @@ test('a remembered bus stops being yours once it is clearly elsewhere', () => {
   const gone = bus({ vehicleId: 'old', lat: where.latitude + 400 / METERS_PER_DEGREE_LAT, lon: where.longitude, timestampMs: NOW - 5000 });
   const match = matchBoardedVehicle({ trail, vehicles: [gone], lineName: '70', now: NOW, previous: { vehicleId: 'old', lineName: '70', lastSeenAt: NOW } });
   assert.equal(match, null);
+});
+
+test('stepping off and walking ends the match even though the bus\'s last report is stale', () => {
+  // Rode north at 10 m/s, got off and walked on at 1.4 m/s for the last 30 s.
+  const fixes: TrailFix[] = [];
+  let lat = BASE.latitude;
+  for (let s = 110; s >= 0; s -= 5) {
+    lat += ((s > 30 ? 10 : 1.4) * 5) / METERS_PER_DEGREE_LAT;
+    fixes.push({ latitude: lat, longitude: BASE.longitude, t: NOW - s * 1000 });
+  }
+  // The bus's newest report is 40 s old — from when you were still on it — so it was right beside you then.
+  const reportAt = NOW - 40_000;
+  const where = userPositionAt(fixes, reportAt);
+  assert.ok(where);
+  const mine = bus({ vehicleId: 'mine', lat: where.latitude, lon: where.longitude, timestampMs: reportAt });
+  const previous = { vehicleId: 'mine', lineName: '70', lastSeenAt: NOW };
+  assert.equal(matchBoardedVehicle({ trail: fixes, vehicles: [mine], lineName: '70', now: NOW, previous }), null);
+  // Same bus, same stale report, but you are still riding: kept.
+  const riding = northboundTrail(10, 110);
+  const there = userPositionAt(riding, reportAt);
+  assert.ok(there);
+  const stillMine = bus({ vehicleId: 'mine', lat: there.latitude, lon: there.longitude, timestampMs: reportAt });
+  assert.equal(matchBoardedVehicle({ trail: riding, vehicles: [stillMine], lineName: '70', now: NOW, previous })?.vehicleId, 'mine');
+});
+
+test('isWalkingPace: walking yes; standing at a stop, riding, or too little data no', () => {
+  assert.equal(isWalkingPace(northboundTrail(1.4, 30), NOW), true);
+  assert.equal(isWalkingPace(northboundTrail(0, 30), NOW), false);
+  assert.equal(isWalkingPace(northboundTrail(10, 30), NOW), false);
+  assert.equal(isWalkingPace(northboundTrail(1.4, 8), NOW), false);
+  assert.equal(isWalkingPace([], NOW), false);
 });
 
 test('a remembered bus that drops out of the feed briefly is kept, then given up on', () => {

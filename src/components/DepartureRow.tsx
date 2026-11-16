@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useThemeColors } from '../context/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
+import { CrowdingLevel } from '../services/occupancy';
 import { radius, spacing, ThemeColors } from '../theme';
 import { Departure } from '../types';
+import CrowdingLabel from './CrowdingLabel';
 
 // The parent list only refetches every ~30s — ticking locally in between keeps the
 // countdown honest as time passes rather than freezing until the next network poll.
@@ -13,7 +15,7 @@ function minutesUntil(iso: string, now: number): number {
   return Math.max(0, Math.round((new Date(iso).getTime() - now) / 60_000));
 }
 
-export default function DepartureRow({ departure }: { departure: Departure }) {
+export default function DepartureRow({ departure, crowding }: { departure: Departure; crowding?: CrowdingLevel }) {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const t = useTranslation();
@@ -50,6 +52,8 @@ export default function DepartureRow({ departure }: { departure: Departure }) {
         ) : (
           <Text style={styles.onTime}>{t('departure.onTime')}</Text>
         )}
+        {/* --- Crowding --- */}
+        {crowding && !departure.cancelled && <CrowdingLabel level={crowding} style={styles.crowding} />}
       </View>
       <Text style={styles.minutes}>{departure.cancelled ? '--' : t('departure.minutes', { minutes })}</Text>
     </View>
@@ -79,6 +83,7 @@ function createStyles(colors: ThemeColors) {
     scheduled: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
     delayed: { color: colors.danger, fontSize: 12, marginTop: 2 },
     cancelled: { color: colors.danger, fontSize: 12, marginTop: 2, fontWeight: '700' },
+    crowding: { fontSize: 12, marginTop: 2 },
     minutes: { color: colors.text, fontWeight: '700', fontSize: 15 },
   });
 }

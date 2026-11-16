@@ -49,6 +49,8 @@ export interface VehiclePosition {
   timestampMs?: number;
   speedMps?: number;
   routeShortName?: string;
+  // GTFS-realtime occupancy_status when the vehicle reports one (see services/occupancy.ts).
+  occupancy?: number;
   mode: TransportMode;
 }
 

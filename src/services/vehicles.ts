@@ -14,6 +14,8 @@ interface VehiclePositionData {
   position: { latitude: number; longitude: number; bearing?: string | number; speed?: number };
   // Seconds since epoch — when the vehicle reported the position above.
   timestamp?: number | string;
+  // Present for roughly half the fleet.
+  occupancy_status?: number;
   vehicle: { id: string };
 }
 
@@ -64,6 +66,7 @@ export async function getVehiclePositions(): Promise<VehiclePosition[]> {
               bearing: v.position.bearing !== undefined ? Number(v.position.bearing) : undefined,
               ...(v.timestamp != null && Number.isFinite(Number(v.timestamp)) ? { timestampMs: Number(v.timestamp) * 1000 } : {}),
               ...(typeof v.position.speed === 'number' ? { speedMps: v.position.speed / 3.6 } : {}),
+              ...(typeof v.occupancy_status === 'number' ? { occupancy: v.occupancy_status } : {}),
               routeShortName: route?.shortName,
               mode: route?.mode ?? 'unknown',
             };

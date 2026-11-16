@@ -12,6 +12,7 @@ import { getShapeForTrip } from '../services/gtfsStatic';
 import { getCurrentCoordinates, getFastCoordinates } from '../services/location';
 import { getNextStopForTrip, NextStopInfo } from '../services/realtime';
 import { MODE_ICON } from '../services/markerIcon';
+import { CrowdingLevel, crowdingLevel } from '../services/occupancy';
 import { getVehiclePositions } from '../services/vehicles';
 import { useSettings } from '../context/SettingsContext';
 import { useThemeColors, useThemeScheme } from '../context/ThemeContext';
@@ -19,6 +20,7 @@ import { useTranslation } from '../i18n/useTranslation';
 import { darkMapStyle, lightMapStyle, MY_LOCATION_ZOOM_DELTA } from '../mapStyle';
 import { spacing } from '../theme';
 import { Stop, VehiclePosition } from '../types';
+import CrowdingLabel from './CrowdingLabel';
 import HeadingArrowBadge, { bearingBucket } from './HeadingArrowBadge';
 import LocateButton from './LocateButton';
 import StableMarker from './StableMarker';
@@ -557,6 +559,10 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
         <View style={[styles.infoCard, { bottom: spacing.sm + bottomInset }]}>
           <Text style={styles.infoRoute}>{selected.routeShortName ?? 'Vehicle'}</Text>
           {selectedHeadsign ? <Text style={styles.infoHeadsign}>{selectedHeadsign}</Text> : null}
+          {/* --- Crowding --- */}
+          {crowdingLevel(selected.occupancy) && (
+            <CrowdingLabel level={crowdingLevel(selected.occupancy) as CrowdingLevel} style={styles.infoNextStopLabel} />
+          )}
           {selected.tripId && (
             <NextStopStatus tripId={selected.tripId} styles={styles} vehiclesUpdatedAt={vehiclesUpdatedAt} />
           )}

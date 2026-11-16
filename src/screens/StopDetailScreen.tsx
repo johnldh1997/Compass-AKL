@@ -12,7 +12,9 @@ import { mergeDepartures } from '../services/departures';
 import { getStopById } from '../services/gtfs';
 import { getScheduledDeparturesForStop } from '../services/gtfsStatic';
 import { ensureNotificationSetup, scheduleDepartureReminder } from '../services/notifications';
+import { CrowdingLevel, crowdingLevel } from '../services/occupancy';
 import { getDeparturesForStop } from '../services/realtime';
+import { getVehiclePositions } from '../services/vehicles';
 import { radius, spacing, ThemeColors } from '../theme';
 import { Departure, RootStackParamList, ServiceAlert, Stop } from '../types';
 
@@ -30,6 +32,7 @@ export default function StopDetailScreen({ route }: Props) {
   const [stopLocation, setStopLocation] = useState<Stop | undefined>();
   const [alerts, setAlerts] = useState<ServiceAlert[]>([]);
   const [debugInfo, setDebugInfo] = useState('');
+  const [crowding, setCrowding] = useState<Map<string, CrowdingLevel>>(new Map());
 
   const { favorites, isFavorite, addFavorite, removeFavorite, setFavoriteNotifications } = useFavorites();
   const { notificationsMasterEnabled } = useSettings();
@@ -49,12 +52,20 @@ export default function StopDetailScreen({ route }: Props) {
         console.warn('getScheduledDeparturesForStop failed:', err);
         return [];
       }),
+      // --- Crowding --- Best-effort: a failure here just means no crowding shown.
+      getVehiclePositions().catch(() => []),
     ])
-      .then(([live, scheduled]) => {
+      .then(([live, scheduled, vehicles]) => {
         setDebugInfo(
           `live=${live.length} scheduled=${scheduled.length}${scheduledError ? ` error="${scheduledError}"` : ''}`
         );
         setDepartures(mergeDepartures(live, scheduled));
+        const levels = new Map<string, CrowdingLevel>();
+        for (const v of vehicles) {
+          const level = crowdingLevel(v.occupancy);
+          if (v.tripId && level) levels.set(v.tripId, level);
+        }
+        setCrowding(levels);
       })
       .finally(() => setLoading(false));
   }, [stopId]);
@@ -148,7 +159,7 @@ export default function StopDetailScreen({ route }: Props) {
           ListEmptyComponent={<Text style={styles.empty}>{t('favorites.noDepartures')}</Text>}
           renderItem={({ item }) => (
             <View>
-              <DepartureRow departure={item} />
+              <DepartureRow departure={item} crowding={crowding.get(item.tripId)} />
               {notificationsAvailableForStop && !item.cancelled && (
                 <Pressable style={styles.remindButton} onPress={() => handleRemind(item)}>
                   <Text style={styles.remindButtonText}>{t('stopDetail.remindMe')}</Text>

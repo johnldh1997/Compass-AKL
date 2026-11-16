@@ -80,6 +80,23 @@ export function trailSpeedMps(trail: TrailFix[], now: number, windowMs = 20_000)
   return seconds <= 0 ? null : distanceMeters(a, b) / seconds;
 }
 
+// --- Walked Off The Bus ---
+// A matched bus is kept while its last report was near you *at that report's time*. After you step off, the feed
+// is still a few seconds to minutes behind, so the latest report is from when you were still aboard and keeps
+// the match alive while you walk away. Your own movement settles it: a steady walking pace (neither standing at
+// a stop, which is ~0, nor riding, which is well over 3 m/s) for this long means you're on foot.
+export const WALK_WINDOW_MS = 20_000;
+export const WALK_MIN_SPAN_MS = 15_000;
+export const WALK_MIN_SPEED_MPS = 0.7;
+export const WALK_MAX_SPEED_MPS = 2.3;
+
+export function isWalkingPace(trail: TrailFix[], now: number): boolean {
+  const recent = trail.filter((fix) => fix.t >= now - WALK_WINDOW_MS);
+  if (recent.length < 2 || recent[recent.length - 1].t - recent[0].t < WALK_MIN_SPAN_MS) return false;
+  const speed = trailSpeedMps(trail, now, WALK_WINDOW_MS);
+  return speed !== null && speed >= WALK_MIN_SPEED_MPS && speed <= WALK_MAX_SPEED_MPS;
+}
+
 // The compass course you've been travelling on over roughly the last `windowMs`; null while you've barely
 // moved (a course from a few metres of GPS jitter is noise).
 export function trailCourseDegrees(trail: TrailFix[], now: number, windowMs = 30_000, minMetres = 25): number | null {
@@ -127,7 +144,7 @@ export function matchBoardedVehicle(input: MatchInput): BoardedMatch | null {
   const { trail, vehicles, lineName, now, previous } = input;
   const candidates = vehicles.filter((v) => v.routeShortName === lineName);
 
-  if (previous && previous.lineName === lineName) {
+  if (previous && previous.lineName === lineName && !isWalkingPace(trail, now)) {
     const sticky = candidates.find((v) => v.vehicleId === previous.vehicleId);
     if (sticky) {
       const d = distanceAtReportTime(trail, sticky, now);

@@ -13,9 +13,11 @@ import { decodePolyline } from '../services/directions';
 import { getStopById, getTripHeadsign } from '../services/gtfs';
 import { getLegColor } from '../services/legColors';
 import { getCurrentCoordinates } from '../services/location';
+import { crowdingLevel } from '../services/occupancy';
 import { getNextStopForTrip, NextStopInfo } from '../services/realtime';
 import { radius, spacing } from '../theme';
 import { Stop, TransitStep, TransportMode, VehiclePosition } from '../types';
+import CrowdingLabel from './CrowdingLabel';
 import HeadingArrowBadge, { bearingBucket } from './HeadingArrowBadge';
 import LocateButton from './LocateButton';
 import StableMarker from './StableMarker';
@@ -373,6 +375,7 @@ function SelectedVehicleInfo({
   const [headsign, setHeadsign] = useState('');
   const [nextStop, setNextStop] = useState<(NextStopInfo & { stopName: string }) | null>(null);
   const secondsLeft = useCountdown(NEXT_STOP_POLL_MS, liveVehiclesUpdatedAt);
+  const crowding = crowdingLevel(vehicle.occupancy);
 
   useEffect(() => {
     const tripId = vehicle.tripId;
@@ -416,6 +419,8 @@ function SelectedVehicleInfo({
       {onBoard && <Text style={[styles.infoOnBoard, { color: colors.primary }]}>{t('map.onThisBus')}</Text>}
       <Text style={[styles.infoRoute, { color: colors.text }]}>{vehicle.routeShortName ?? t('common.vehicle')}</Text>
       {headsign ? <Text style={[styles.infoHeadsign, { color: colors.textMuted }]}>{headsign}</Text> : null}
+      {/* --- Crowding --- */}
+      {crowding && <CrowdingLabel level={crowding} style={styles.infoStatus} />}
       {nextStop && (
         <>
           <Text style={[styles.infoNextStopLabel, { color: colors.text }]}>
