@@ -1,6 +1,6 @@
 import { Stop, TransitStep } from '../types';
 import { getStopById, getStopsNearLocation } from './gtfs';
-import { getStopsForTransitStep } from './gtfsStatic';
+import { resolveTransitStep } from './gtfsStatic';
 
 // Google's own board/alight coordinates for a leg usually land within a few metres of
 // AT's stop location, but not always exactly on it — beyond this, treat it as "no match"
@@ -13,7 +13,7 @@ const MAX_STOP_MATCH_DISTANCE_METERS = 100;
 // single nearest one is a coin flip between the two platforms, and reported live as a train
 // leg (the E-W line via Glen Innes) resolving zero stops: the picked platform simply wasn't
 // the one this specific trip's own stop sequence used. Returning every stop within range
-// instead lets getStopsForTransitStep pick whichever candidate is actually on the matched
+// instead lets resolveTransitStep pick whichever candidate is actually on the matched
 // trip, rather than committing to one guess before the trip itself is even known.
 async function findMatchingStops(location: { lat: number; lon: number }): Promise<Stop[]> {
   const nearby = await getStopsNearLocation(location.lat, location.lon, 5);
@@ -26,7 +26,12 @@ async function findMatchingStops(location: { lat: number; lon: number }): Promis
 // the background alert checks that run every few seconds while a journey is active — and each
 // uncached lookup is several SQLite queries. A rejected lookup drops its own cache entry so a
 // transient failure can be retried instead of sticking.
-const legStopsCache = new Map<string, Promise<Stop[]>>();
+interface ResolvedLeg {
+  stops: Stop[];
+  // AT's trip_id for the matched trip, so the live vehicle running this leg can be found (crowding).
+  tripId?: string;
+}
+const legStopsCache = new Map<string, Promise<ResolvedLeg>>();
 
 function legCacheKey(step: TransitStep): string | null {
   if (!step.lineName || !step.departureStop || !step.arrivalStop || !step.departureTimestamp) return null;
@@ -35,16 +40,16 @@ function legCacheKey(step: TransitStep): string | null {
 }
 
 // Every stop a transit leg passes through, board to alight inclusive — see
-// getStopsForTransitStep for how the AT static trip itself is matched. Best-effort: any
+// resolveTransitStep for how the AT static trip itself is matched. Best-effort: any
 // unresolved link in the chain (no line name, no board/alight coordinates from Google, no
 // nearby AT stop, no matching trip) just means no stops for that leg, not an error.
-export function getStopsAlongLeg(step: TransitStep): Promise<Stop[]> {
+function resolveLegCached(step: TransitStep): Promise<ResolvedLeg> {
   const key = step.kind === 'transit' ? legCacheKey(step) : null;
-  if (!key) return Promise.resolve([]);
+  if (!key) return Promise.resolve({ stops: [] });
 
   let cached = legStopsCache.get(key);
   if (!cached) {
-    cached = resolveStopsAlongLeg(step).catch((err) => {
+    cached = resolveLeg(step).catch((err) => {
       legStopsCache.delete(key);
       throw err;
     });
@@ -53,25 +58,35 @@ export function getStopsAlongLeg(step: TransitStep): Promise<Stop[]> {
   return cached;
 }
 
-async function resolveStopsAlongLeg(step: TransitStep): Promise<Stop[]> {
+export async function getStopsAlongLeg(step: TransitStep): Promise<Stop[]> {
+  return (await resolveLegCached(step)).stops;
+}
+
+// --- Crowding On Your Journey ---
+// AT's trip_id for the trip serving this leg, when it could be matched (undefined otherwise).
+export async function getTripIdForLeg(step: TransitStep): Promise<string | undefined> {
+  return (await resolveLegCached(step)).tripId;
+}
+
+async function resolveLeg(step: TransitStep): Promise<ResolvedLeg> {
   if (step.kind !== 'transit' || !step.lineName || !step.departureStop || !step.arrivalStop || !step.departureTimestamp) {
-    return [];
+    return { stops: [] };
   }
 
   const [departureStops, arrivalStops] = await Promise.all([
     findMatchingStops(step.departureStop),
     findMatchingStops(step.arrivalStop),
   ]);
-  if (departureStops.length === 0 || arrivalStops.length === 0) return [];
+  if (departureStops.length === 0 || arrivalStops.length === 0) return { stops: [] };
 
-  const stopIds = await getStopsForTransitStep(
+  const resolved = await resolveTransitStep(
     step.lineName,
     departureStops.map((stop) => stop.id),
     arrivalStops.map((stop) => stop.id),
     step.departureTimestamp
   );
-  if (stopIds.length === 0) return [];
+  if (!resolved) return { stops: [] };
 
-  const stops = await Promise.all(stopIds.map((id) => getStopById(id)));
-  return stops.filter((stop): stop is Stop => !!stop);
+  const stops = await Promise.all(resolved.stopIds.map((id) => getStopById(id)));
+  return { stops: stops.filter((stop): stop is Stop => !!stop), tripId: resolved.tripId };
 }

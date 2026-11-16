@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Dimensions, FlatList, Pressable, ScrollView, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedPressable from '../components/AnimatedPressable';
 import BackButton from '../components/BackButton';
+import CrowdingIndicator from '../components/CrowdingIndicator';
 import DepartureTimePicker from '../components/DepartureTimePicker';
 import DraggableSheet from '../components/DraggableSheet';
 import LegStopList from '../components/LegStopList';
@@ -16,6 +17,7 @@ import RoutePreviewMap from '../components/RoutePreviewMap';
 import TripRow from '../components/TripRow';
 import { useFavoriteTrips } from '../context/FavoriteTripsContext';
 import { useBoardedVehicle } from '../hooks/useBoardedVehicle';
+import { useLegCrowding } from '../hooks/useLegCrowding';
 import { useLegStops } from '../hooks/useLegStops';
 import { useRecentTrips } from '../context/RecentTripsContext';
 import { useSettings } from '../context/SettingsContext';
@@ -32,6 +34,7 @@ import { startJourneyTracking, stopJourneyTracking, updateJourneyNotification } 
 import { ensureLocationPermission } from '../services/location';
 import { getLegColor } from '../services/legColors';
 import { journeyStopFromRoute } from '../services/nearbyConversation';
+import { CrowdingLevel } from '../services/occupancy';
 import { computeLegProgress, LatLon } from '../services/legProgress';
 import { getVehiclesForRoutes } from '../services/liveVehicleMatch';
 import { radius, spacing, ThemeColors } from '../theme';
@@ -150,6 +153,8 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
   // accuracy filter in beginTracking) — what the per-leg stop list highlights against.
   const [matchedPosition, setMatchedPosition] = useState<LatLon>();
   const legStops = useLegStops(journeyRoute?.steps);
+  // --- Crowding On Your Journey ---
+  const legCrowding = useLegCrowding(journeyRoute?.steps);
   const [focusOnUserAt, setFocusOnUserAt] = useState<number>();
   const [focusStepAt, setFocusStepAt] = useState<{ index: number; requestedAt: number }>();
   const [routeAlerts, setRouteAlerts] = useState<ServiceAlert[]>([]);
@@ -613,13 +618,14 @@ export default function JourneyPlannerScreen({ route, navigation }: Props) {
             data={journeyRoute.steps}
             keyExtractor={(_, index) => String(index)}
             contentContainerStyle={styles.stepsList}
-            extraData={[currentStepIndex, matchedPosition, legStops]}
+            extraData={[currentStepIndex, matchedPosition, legStops, legCrowding]}
             renderItem={({ item, index }) => (
               <StepRow
                 step={item}
                 color={getLegColor(journeyRoute.steps, index, colors)}
                 isCurrent={screenState === 'active' && index === currentStepIndex}
                 stops={legStops.get(index)}
+                crowding={legCrowding.get(index)}
                 position={screenState === 'active' ? matchedPosition : undefined}
                 onPress={() => setFocusStepAt({ index, requestedAt: Date.now() })}
               />
@@ -790,6 +796,7 @@ function StepRow({
   color,
   isCurrent,
   stops,
+  crowding,
   position,
   onPress,
 }: {
@@ -798,6 +805,8 @@ function StepRow({
   isCurrent: boolean;
   // Every stop this leg passes through, when they could be resolved (see useLegStops).
   stops?: Stop[];
+  // How full this leg's bus is, when known (see useLegCrowding).
+  crowding?: CrowdingLevel;
   // The rider's live position, only while a journey is active.
   position?: LatLon;
   onPress: () => void;
@@ -847,6 +856,8 @@ function StepRow({
             {step.departureTime} → {step.arrivalTime}
             {step.numStops !== undefined ? ` · ${t('journey.numStops', { count: step.numStops })}` : ''}
           </Text>
+          {/* --- Crowding On Your Journey --- */}
+          {crowding && <CrowdingIndicator level={crowding} />}
         </View>
       </Pressable>
       {showStops && stops && (

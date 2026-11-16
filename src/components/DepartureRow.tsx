@@ -5,7 +5,7 @@ import { useTranslation } from '../i18n/useTranslation';
 import { CrowdingLevel } from '../services/occupancy';
 import { radius, spacing, ThemeColors } from '../theme';
 import { Departure } from '../types';
-import CrowdingLabel from './CrowdingLabel';
+import CrowdingIndicator from './CrowdingIndicator';
 
 // The parent list only refetches every ~30s — ticking locally in between keeps the
 // countdown honest as time passes rather than freezing until the next network poll.
@@ -53,7 +53,7 @@ export default function DepartureRow({ departure, crowding }: { departure: Depar
           <Text style={styles.onTime}>{t('departure.onTime')}</Text>
         )}
         {/* --- Crowding --- */}
-        {crowding && !departure.cancelled && <CrowdingLabel level={crowding} style={styles.crowding} />}
+        {crowding && !departure.cancelled && <CrowdingIndicator level={crowding} />}
       </View>
       <Text style={styles.minutes}>{departure.cancelled ? '--' : t('departure.minutes', { minutes })}</Text>
     </View>
@@ -83,7 +83,6 @@ function createStyles(colors: ThemeColors) {
     scheduled: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
     delayed: { color: colors.danger, fontSize: 12, marginTop: 2 },
     cancelled: { color: colors.danger, fontSize: 12, marginTop: 2, fontWeight: '700' },
-    crowding: { fontSize: 12, marginTop: 2 },
     minutes: { color: colors.text, fontWeight: '700', fontSize: 15 },
   });
 }

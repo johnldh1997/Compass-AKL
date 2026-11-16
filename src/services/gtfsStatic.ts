@@ -261,12 +261,15 @@ interface TripStopRow {
 // metres apart, so picking a single nearest one before even knowing which trip it is can
 // silently pick the wrong platform. Checking a trip's sequence against the whole candidate
 // set instead means whichever platform that specific trip actually uses is still found.
-export async function getStopsForTransitStep(
+//
+// Also gives the matched trip's own AT trip_id, which is what lets a leg be matched to the live vehicle
+// running it (see useLegCrowding).
+export async function resolveTransitStep(
   routeShortName: string,
   departureStopIds: string[],
   arrivalStopIds: string[],
   departureTimestamp: string
-): Promise<string[]> {
+): Promise<{ tripId: string; stopIds: string[] } | null> {
   const db = await getDb();
 
   const departureDate = new Date(departureTimestamp);
@@ -278,7 +281,7 @@ export async function getStopsForTransitStep(
   ]);
 
   const routeRows = await db.getAllAsync<{ id: number }>('SELECT id FROM routes WHERE short_name = ?', [routeShortName]);
-  if (routeRows.length === 0) return [];
+  if (routeRows.length === 0) return null;
   const routeIds = routeRows.map((r) => r.id);
 
   async function resolveInternalIds(stopIds: string[]): Promise<number[]> {
@@ -290,7 +293,7 @@ export async function getStopsForTransitStep(
     resolveInternalIds(departureStopIds),
     resolveInternalIds(arrivalStopIds),
   ]);
-  if (departureStopIntIds.length === 0 || arrivalStopIntIds.length === 0) return [];
+  if (departureStopIntIds.length === 0 || arrivalStopIntIds.length === 0) return null;
   const arrivalStopIntIdSet = new Set(arrivalStopIntIds);
 
   const midnight = new Date(departureDate);
@@ -331,11 +334,13 @@ export async function getStopsForTransitStep(
     const departureIndex = rows.findIndex((r) => departureStopIntIds.includes(r.int_stop_id));
     const arrivalIndex = rows.findIndex((r) => arrivalStopIntIdSet.has(r.int_stop_id));
     if (departureIndex !== -1 && arrivalIndex !== -1 && arrivalIndex > departureIndex) {
-      return rows.slice(departureIndex, arrivalIndex + 1).map((r) => r.stop_id);
+      const tripRow = await db.getFirstAsync<{ trip_id: string }>('SELECT trip_id FROM trips WHERE id = ?', [candidate.trip_id]);
+      if (!tripRow) continue;
+      return { tripId: tripRow.trip_id, stopIds: rows.slice(departureIndex, arrivalIndex + 1).map((r) => r.stop_id) };
     }
   }
 
-  return [];
+  return null;
 }
 
 export async function getShapeForTrip(tripId: string): Promise<{ latitude: number; longitude: number }[]> {

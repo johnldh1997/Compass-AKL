@@ -20,7 +20,7 @@ import { useTranslation } from '../i18n/useTranslation';
 import { darkMapStyle, lightMapStyle, MY_LOCATION_ZOOM_DELTA } from '../mapStyle';
 import { spacing } from '../theme';
 import { Stop, VehiclePosition } from '../types';
-import CrowdingLabel from './CrowdingLabel';
+import CrowdingIndicator from './CrowdingIndicator';
 import HeadingArrowBadge, { bearingBucket } from './HeadingArrowBadge';
 import LocateButton from './LocateButton';
 import StableMarker from './StableMarker';
@@ -561,7 +561,7 @@ export default function VehicleMap({ onStopPress, bottomInset = 0, onSelectedVeh
           {selectedHeadsign ? <Text style={styles.infoHeadsign}>{selectedHeadsign}</Text> : null}
           {/* --- Crowding --- */}
           {crowdingLevel(selected.occupancy) && (
-            <CrowdingLabel level={crowdingLevel(selected.occupancy) as CrowdingLevel} style={styles.infoNextStopLabel} />
+            <CrowdingIndicator level={crowdingLevel(selected.occupancy) as CrowdingLevel} />
           )}
           {selected.tripId && (
             <NextStopStatus tripId={selected.tripId} styles={styles} vehiclesUpdatedAt={vehiclesUpdatedAt} />

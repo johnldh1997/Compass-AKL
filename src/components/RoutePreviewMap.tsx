@@ -17,7 +17,7 @@ import { crowdingLevel } from '../services/occupancy';
 import { getNextStopForTrip, NextStopInfo } from '../services/realtime';
 import { radius, spacing } from '../theme';
 import { Stop, TransitStep, TransportMode, VehiclePosition } from '../types';
-import CrowdingLabel from './CrowdingLabel';
+import CrowdingIndicator from './CrowdingIndicator';
 import HeadingArrowBadge, { bearingBucket } from './HeadingArrowBadge';
 import LocateButton from './LocateButton';
 import StableMarker from './StableMarker';
@@ -420,7 +420,7 @@ function SelectedVehicleInfo({
       <Text style={[styles.infoRoute, { color: colors.text }]}>{vehicle.routeShortName ?? t('common.vehicle')}</Text>
       {headsign ? <Text style={[styles.infoHeadsign, { color: colors.textMuted }]}>{headsign}</Text> : null}
       {/* --- Crowding --- */}
-      {crowding && <CrowdingLabel level={crowding} style={styles.infoStatus} />}
+      {crowding && <CrowdingIndicator level={crowding} />}
       {nextStop && (
         <>
           <Text style={[styles.infoNextStopLabel, { color: colors.text }]}>
